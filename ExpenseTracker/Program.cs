@@ -54,6 +54,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = context =>
+            {
+                var sessionStore = context.HttpContext.RequestServices.GetRequiredService<ITokenSessionStore>();
+                var employeeIdClaim = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var jti = context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
+
+                if (!int.TryParse(employeeIdClaim, out var employeeId) || string.IsNullOrWhiteSpace(jti))
+                {
+                    context.Fail("Invalid token claims.");
+                    return Task.CompletedTask;
+                }
+
+                if (!sessionStore.IsSessionValid(employeeId, jti))
+                {
+                    context.Fail("Session is invalid or already replaced.");
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -67,6 +90,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Add Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddSingleton<ITokenSessionStore, TokenSessionStore>();
 builder.Services.AddScoped<IEmployeeAdminService, EmployeeAdminService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 
