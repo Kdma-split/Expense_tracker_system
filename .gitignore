@@ -1,0 +1,35 @@
+# Build output
+**/bin/
+**/obj/
+**/build/
+**/build_out/
+**/TestResults/
+
+# User/local IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+logs/
+
+# ASP.NET local config/secrets
+**/appsettings.Development.json
+**/secrets.json
+
+# EF / tooling caches
+**/.entityframework/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node (if frontend is added)
+node_modules/
+dist/
+.npm/
+.pnpm-store/
