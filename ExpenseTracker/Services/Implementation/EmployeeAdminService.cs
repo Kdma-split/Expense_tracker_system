@@ -26,7 +26,7 @@ public class EmployeeAdminService : IEmployeeAdminService
                       join ep in _db.EmployeeProfiles.AsNoTracking() on e.Id equals ep.EmployeeId
                       orderby e.Name
                       select new EmployeeAdminDto(
-                          e.Id, e.Name, e.Role, e.Department, e.ManagerId, ep.Email, e.IsActive))
+                          e.Id, e.Name, e.Role, e.Department, e.ManagerId, ep.Email, e.IsActive, e.CreatedDate))
             .ToListAsync();
     }
 
@@ -36,7 +36,7 @@ public class EmployeeAdminService : IEmployeeAdminService
                       join ep in _db.EmployeeProfiles.AsNoTracking() on e.Id equals ep.EmployeeId
                       where e.Id == id
                       select new EmployeeAdminDto(
-                          e.Id, e.Name, e.Role, e.Department, e.ManagerId, ep.Email, e.IsActive))
+                          e.Id, e.Name, e.Role, e.Department, e.ManagerId, ep.Email, e.IsActive, e.CreatedDate))
             .FirstOrDefaultAsync();
     }
 
@@ -78,7 +78,7 @@ public class EmployeeAdminService : IEmployeeAdminService
 
         return new EmployeeAdminDto(
             employee.Id, employee.Name, employee.Role, employee.Department,
-            employee.ManagerId, profile.Email, employee.IsActive
+            employee.ManagerId, profile.Email, employee.IsActive, employee.CreatedDate
         );
     }
 
@@ -116,7 +116,7 @@ public class EmployeeAdminService : IEmployeeAdminService
 
         return new EmployeeAdminDto(
             employee.Id, employee.Name, employee.Role, employee.Department,
-            employee.ManagerId, profile.Email, employee.IsActive
+            employee.ManagerId, profile.Email, employee.IsActive, employee.CreatedDate
         );
     }
 

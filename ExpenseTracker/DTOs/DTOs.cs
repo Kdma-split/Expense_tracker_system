@@ -6,7 +6,7 @@ public record LoginRequest(string Email, string Password);
 public record LoginResponse(string Token, int EmployeeId, string Role, string Name);
 
 public record EmployeeDto(int Id, string Name, string Role, string Department, int? ManagerId);
-public record EmployeeAdminDto(int Id, string Name, string Role, string Department, int? ManagerId, string Email, bool IsActive);
+public record EmployeeAdminDto(int Id, string Name, string Role, string Department, int? ManagerId, string Email, bool IsActive, DateTime CreatedDate);
 public record CreateEmployeeByAdminDto(string Email, string Password, string Name, string Role, string Department, int? ManagerId);
 public record UpdateEmployeeByAdminDto(string Name, string Role, string Department, int? ManagerId, string? Password);
 public record UpdateEmployeeStatusDto(bool IsActive);
