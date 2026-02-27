@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Card,
@@ -13,13 +13,15 @@ import {
   Typography
 } from "@mui/material";
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { api, toQueryString } from "../../api/client";
 import RequestTable from "../../components/RequestTable";
 import { STATUS_LABEL } from "../../components/constants";
+import { useEmployeesQuery } from "../../api/hooks/employees";
+import { useRequestsQuery } from "../../api/hooks/requests";
 
 const AdminAnalyticsPage = () => {
-  const [requests, setRequests] = useState([]);
-  const [employees, setEmployees] = useState([]);
+  const { data: requestData } = useRequestsQuery({ pageNumber: 1, pageSize: 500 });
+  const { data: employees = [] } = useEmployeesQuery(true);
+  const requests = requestData?.items || [];
   const [filters, setFilters] = useState({
     fromDate: "",
     toDate: "",
@@ -28,19 +30,6 @@ const AdminAnalyticsPage = () => {
     sortBy: "date",
     sortOrder: "asc"
   });
-
-  const load = async () => {
-    const [reqRes, empRes] = await Promise.all([
-      api.get(`/requests?${toQueryString({ pageNumber: 1, pageSize: 500 })}`),
-      api.get("/admin/employees?includeInactive=true")
-    ]);
-    setRequests(reqRes.data.items || []);
-    setEmployees(empRes.data || []);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
 
   const employeeIdFromFilter = useMemo(() => {
     if (!filters.employee) return null;

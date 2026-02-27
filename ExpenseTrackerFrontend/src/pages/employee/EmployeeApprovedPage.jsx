@@ -1,23 +1,20 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, Card, CardContent, Stack, Typography } from "@mui/material";
-import { api, toQueryString } from "../../api/client";
 import RequestTable from "../../components/RequestTable";
 import { REQUEST_STATUS } from "../../components/constants";
 import CreateRequestDialog from "../../components/CreateRequestDialog";
+import { useRequestsQuery } from "../../api/hooks/requests";
+import { useInvalidateExpenseData } from "../../api/hooks/mutations";
 
 const EmployeeApprovedPage = () => {
-  const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
-
-  const load = async () => {
-    const approved = await api.get(`/requests?${toQueryString({ status: REQUEST_STATUS.Approved, pageNumber: 1, pageSize: 100 })}`);
-    const paid = await api.get(`/requests?${toQueryString({ status: REQUEST_STATUS.Paid, pageNumber: 1, pageSize: 100 })}`);
-    setRows([...(approved.data.items || []), ...(paid.data.items || [])]);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  const invalidate = useInvalidateExpenseData();
+  const approvedQuery = useRequestsQuery({ status: REQUEST_STATUS.Approved, pageNumber: 1, pageSize: 100 });
+  const paidQuery = useRequestsQuery({ status: REQUEST_STATUS.Paid, pageNumber: 1, pageSize: 100 });
+  const rows = useMemo(
+    () => [...(approvedQuery.data?.items || []), ...(paidQuery.data?.items || [])],
+    [approvedQuery.data, paidQuery.data]
+  );
 
   return (
     <Stack spacing={2}>
@@ -30,7 +27,7 @@ const EmployeeApprovedPage = () => {
           <RequestTable rows={rows} />
         </CardContent>
       </Card>
-      <CreateRequestDialog open={open} onClose={() => setOpen(false)} onSaved={load} />
+      <CreateRequestDialog open={open} onClose={() => setOpen(false)} onSaved={invalidate} />
     </Stack>
   );
 };

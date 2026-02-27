@@ -1,31 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, Card, CardContent, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 import { api } from "../../api/client";
 import CreateRequestDialog from "../../components/CreateRequestDialog";
+import { useDraftsQuery } from "../../api/hooks/drafts";
+import { useAppMutation, useInvalidateExpenseData } from "../../api/hooks/mutations";
 
 const EmployeeDraftsPage = () => {
-  const [drafts, setDrafts] = useState([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-
-  const load = async () => {
-    const { data } = await api.get("/drafts");
-    setDrafts(data || []);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const submitDraft = async (id) => {
-    await api.post(`/drafts/${id}/submit`);
-    load();
-  };
-
-  const removeDraft = async (id) => {
-    await api.delete(`/drafts/${id}`);
-    load();
-  };
+  const invalidate = useInvalidateExpenseData();
+  const { data: drafts = [] } = useDraftsQuery();
+  const submitDraftMutation = useAppMutation((id) => api.post(`/drafts/${id}/submit`));
+  const removeDraftMutation = useAppMutation((id) => api.delete(`/drafts/${id}`));
 
   return (
     <Stack spacing={2}>
@@ -57,8 +43,8 @@ const EmployeeDraftsPage = () => {
                   <TableCell>
                     <Stack direction="row" spacing={1}>
                       <Button size="small" onClick={() => { setEditing(d); setOpen(true); }}>Edit</Button>
-                      <Button size="small" onClick={() => submitDraft(d.id)} variant="contained">Submit</Button>
-                      <Button size="small" onClick={() => removeDraft(d.id)} color="error">Delete</Button>
+                      <Button size="small" onClick={() => submitDraftMutation.mutate(d.id)} variant="contained">Submit</Button>
+                      <Button size="small" onClick={() => removeDraftMutation.mutate(d.id)} color="error">Delete</Button>
                     </Stack>
                   </TableCell>
                 </TableRow>
@@ -71,7 +57,7 @@ const EmployeeDraftsPage = () => {
       <CreateRequestDialog
         open={open}
         onClose={() => setOpen(false)}
-        onSaved={load}
+        onSaved={invalidate}
         draftId={editing?.id}
         initialData={editing}
       />

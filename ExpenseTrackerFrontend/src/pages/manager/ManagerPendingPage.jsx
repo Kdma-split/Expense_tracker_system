@@ -1,30 +1,19 @@
-import { useEffect, useState } from "react";
 import { Button, Card, CardContent, Stack, Typography } from "@mui/material";
-import { api, toQueryString } from "../../api/client";
+import { api } from "../../api/client";
 import RequestTable from "../../components/RequestTable";
+import { useTeamPendingQuery } from "../../api/hooks/requests";
+import { useAppMutation } from "../../api/hooks/mutations";
 
 const ManagerPendingPage = () => {
-  const [rows, setRows] = useState([]);
+  const { data } = useTeamPendingQuery({ pageNumber: 1, pageSize: 100 });
+  const rows = data?.items || [];
+  const approveMutation = useAppMutation((requestId) => api.post("/requests/approve", { requestId, comments: "Approved by manager" }));
+  const rejectMutation = useAppMutation(({ requestId, comment }) => api.post("/requests/reject", { requestId, comment }));
 
-  const load = async () => {
-    const { data } = await api.get(`/requests/team-pending?${toQueryString({ pageNumber: 1, pageSize: 100 })}`);
-    setRows(data.items || []);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const approve = async (requestId) => {
-    await api.post("/requests/approve", { requestId, comments: "Approved by manager" });
-    load();
-  };
-
-  const reject = async (requestId) => {
+  const reject = (requestId) => {
     const comment = window.prompt("Enter rejection remark");
     if (!comment) return;
-    await api.post("/requests/reject", { requestId, comment });
-    load();
+    rejectMutation.mutate({ requestId, comment });
   };
 
   return (
@@ -36,7 +25,7 @@ const ManagerPendingPage = () => {
             rows={rows}
             actions={(row) => (
               <Stack direction="row" spacing={1}>
-                <Button size="small" variant="contained" onClick={() => approve(row.id)}>Approve</Button>
+                <Button size="small" variant="contained" onClick={() => approveMutation.mutate(row.id)}>Approve</Button>
                 <Button size="small" color="error" onClick={() => reject(row.id)}>Reject</Button>
               </Stack>
             )}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   Button,
@@ -18,17 +18,22 @@ import {
   Typography
 } from "@mui/material";
 import { api } from "../../api/client";
+import { useEmployeeByIdQuery, useEmployeesQuery } from "../../api/hooks/employees";
+import { useAppMutation } from "../../api/hooks/mutations";
 
-const CreatePopup = ({ open, onClose, onDone }) => {
+const CreatePopup = ({ open, onClose }) => {
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "Employee", department: "", managerId: "" });
+  const createMutation = useAppMutation((payload) => api.post("/admin/employees", payload));
+
   const save = async () => {
-    await api.post("/admin/employees", {
+    await createMutation.mutateAsync({
       ...form,
       managerId: form.managerId ? Number(form.managerId) : null
     });
-    onDone();
     onClose();
+    setForm({ name: "", email: "", password: "", role: "Employee", department: "", managerId: "" });
   };
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
       <DialogTitle>Create Employee</DialogTitle>
@@ -50,23 +55,24 @@ const CreatePopup = ({ open, onClose, onDone }) => {
   );
 };
 
-const UpdatePopup = ({ open, onClose, onDone }) => {
+const UpdatePopup = ({ open, onClose }) => {
   const [id, setId] = useState("");
-  const [loading, setLoading] = useState(false);
   const [editable, setEditable] = useState(false);
   const [form, setForm] = useState({ name: "", role: "", department: "", managerId: "", password: "" });
   const [error, setError] = useState("");
+  const updateMutation = useAppMutation(({ id: employeeId, payload }) => api.put(`/admin/employees/${employeeId}`, payload));
+  const employeeQuery = useEmployeeByIdQuery(id, false);
 
   const fetchById = async (value) => {
     if (!value) {
       setEditable(false);
       return;
     }
-    setLoading(true);
     setEditable(false);
     setError("");
     try {
-      const { data } = await api.get(`/admin/employees/${value}`);
+      const result = await employeeQuery.refetch();
+      const data = result.data;
       if (!data) {
         setEditable(false);
         return;
@@ -82,20 +88,20 @@ const UpdatePopup = ({ open, onClose, onDone }) => {
     } catch {
       setEditable(false);
       setError("Employee not found");
-    } finally {
-      setLoading(false);
     }
   };
 
   const update = async () => {
-    await api.put(`/admin/employees/${id}`, {
-      name: form.name,
-      role: form.role,
-      department: form.department,
-      managerId: form.managerId ? Number(form.managerId) : null,
-      password: form.password || null
+    await updateMutation.mutateAsync({
+      id,
+      payload: {
+        name: form.name,
+        role: form.role,
+        department: form.department,
+        managerId: form.managerId ? Number(form.managerId) : null,
+        password: form.password || null
+      }
     });
-    onDone();
     onClose();
   };
 
@@ -114,24 +120,26 @@ const UpdatePopup = ({ open, onClose, onDone }) => {
             }}
           />
           {error ? <Alert severity="warning">{error}</Alert> : null}
-          <TextField label="Name" value={form.name} disabled={!editable || loading} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <TextField label="Role" value={form.role} disabled={!editable || loading} onChange={(e) => setForm({ ...form, role: e.target.value })} />
-          <TextField label="Department" value={form.department} disabled={!editable || loading} onChange={(e) => setForm({ ...form, department: e.target.value })} />
-          <TextField label="Manager Id" value={form.managerId} disabled={!editable || loading} onChange={(e) => setForm({ ...form, managerId: e.target.value })} />
-          <TextField label="New Password (optional)" type="password" value={form.password} disabled={!editable || loading} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          <TextField label="Name" value={form.name} disabled={!editable || employeeQuery.isFetching} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <TextField label="Role" value={form.role} disabled={!editable || employeeQuery.isFetching} onChange={(e) => setForm({ ...form, role: e.target.value })} />
+          <TextField label="Department" value={form.department} disabled={!editable || employeeQuery.isFetching} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+          <TextField label="Manager Id" value={form.managerId} disabled={!editable || employeeQuery.isFetching} onChange={(e) => setForm({ ...form, managerId: e.target.value })} />
+          <TextField label="New Password (optional)" type="password" value={form.password} disabled={!editable || employeeQuery.isFetching} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={update} disabled={!editable || loading}>Update</Button>
+        <Button variant="contained" onClick={update} disabled={!editable || employeeQuery.isFetching}>Update</Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-const DeletePopup = ({ open, onClose, onDone, employees }) => {
+const DeletePopup = ({ open, onClose, employees }) => {
   const [employeeId, setEmployeeId] = useState("");
   const [email, setEmail] = useState("");
+  const deactivateMutation = useAppMutation((id) => api.patch(`/admin/employees/${id}/status`, { isActive: false }));
+
   const deactivate = async () => {
     let id = employeeId ? Number(employeeId) : null;
     if (!id && email) {
@@ -139,10 +147,10 @@ const DeletePopup = ({ open, onClose, onDone, employees }) => {
       id = found?.id;
     }
     if (!id) return;
-    await api.patch(`/admin/employees/${id}/status`, { isActive: false });
-    onDone();
+    await deactivateMutation.mutateAsync(id);
     onClose();
   };
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
       <DialogTitle>Delete Employee</DialogTitle>
@@ -161,21 +169,12 @@ const DeletePopup = ({ open, onClose, onDone, employees }) => {
 };
 
 const AdminEmployeesPage = () => {
-  const [employees, setEmployees] = useState([]);
+  const { data: employees = [] } = useEmployeesQuery(true);
   const [employeeIdFilter, setEmployeeIdFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const load = async () => {
-    const { data } = await api.get("/admin/employees?includeInactive=true");
-    setEmployees(data || []);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
 
   const filtered = useMemo(() => {
     return employees.filter((e) => {
@@ -230,9 +229,9 @@ const AdminEmployeesPage = () => {
         </CardContent>
       </Card>
 
-      <CreatePopup open={createOpen} onClose={() => setCreateOpen(false)} onDone={load} />
-      <UpdatePopup open={updateOpen} onClose={() => setUpdateOpen(false)} onDone={load} />
-      <DeletePopup open={deleteOpen} onClose={() => setDeleteOpen(false)} onDone={load} employees={employees} />
+      <CreatePopup open={createOpen} onClose={() => setCreateOpen(false)} />
+      <UpdatePopup open={updateOpen} onClose={() => setUpdateOpen(false)} />
+      <DeletePopup open={deleteOpen} onClose={() => setDeleteOpen(false)} employees={employees} />
     </Stack>
   );
 };

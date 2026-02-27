@@ -13,6 +13,7 @@ import {
   TextField
 } from "@mui/material";
 import { api } from "../api/client";
+import { useCategoriesQuery } from "../api/hooks/categories";
 
 const initialState = {
   subject: "",
@@ -23,13 +24,12 @@ const initialState = {
 };
 
 const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) => {
-  const [categories, setCategories] = useState([]);
+  const { data: categories = [] } = useCategoriesQuery(false, open);
   const [form, setForm] = useState(initialState);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      api.get("/categories").then((res) => setCategories(res.data || []));
       if (initialData) {
         setForm({
           subject: initialData.subject || "",
