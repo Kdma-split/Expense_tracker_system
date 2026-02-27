@@ -8,7 +8,9 @@ import { useAppMutation } from "../../api/hooks/mutations";
 const FinancePendingPage = () => {
   const { data } = useRequestsQuery({ status: REQUEST_STATUS.Approved, pageNumber: 1, pageSize: 100 });
   const rows = data?.items || [];
-  const markPaidMutation = useAppMutation((requestId) => api.post("/finance/pay", { requestId, notes: "Paid by finance" }));
+  const markPaidMutation = useAppMutation((requestId) =>
+    api.post("/finance/pay", { requestId: Number(requestId), notes: "Paid by finance" })
+  );
 
   return (
     <Stack spacing={2}>

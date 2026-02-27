@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => fromToken(Cookies.get("expense_token")));
 
   const login = async (email, password) => {
-    const { data } = await api.post("/auth/login", { email, password });
+    const { data } = await api.post("/Auth/login", { email, password });
     Cookies.set("expense_token", data.token, {
       secure: false,
       sameSite: "Strict",
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await api.post("/auth/logout");
+      await api.post("/Auth/logout");
     } catch {
       // Ignore network/logout failures, always clear local state.
     } finally {

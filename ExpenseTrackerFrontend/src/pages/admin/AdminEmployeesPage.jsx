@@ -15,13 +15,22 @@ const AdminEmployeesPage = () => {
   const [updateOpen, setUpdateOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  const manageableEmployees = useMemo(
+    () =>
+      employees.filter((e) => {
+        const role = String(e.role || "").toLowerCase();
+        return role === "employee" || role === "manager";
+      }),
+    [employees]
+  );
+
   const filtered = useMemo(() => {
-    return employees.filter((e) => {
+    return manageableEmployees.filter((e) => {
       const idOk = employeeIdFilter ? String(e.id).includes(employeeIdFilter) : true;
       const dateOk = dateFilter ? new Date(e.createdDate).toISOString().slice(0, 10) === dateFilter : true;
       return idOk && dateOk;
     });
-  }, [employees, employeeIdFilter, dateFilter]);
+  }, [manageableEmployees, employeeIdFilter, dateFilter]);
 
   return (
     <Stack spacing={2}>
@@ -29,7 +38,7 @@ const AdminEmployeesPage = () => {
       <Stack direction="row" spacing={2}>
         <Button variant="contained" onClick={() => setCreateOpen(true)}>Create Employee</Button>
         <Button variant="outlined" onClick={() => setUpdateOpen(true)}>Update Employee</Button>
-        <Button variant="outlined" color="error" onClick={() => setDeleteOpen(true)}>Delete Employee</Button>
+        <Button variant="outlined" color="error" onClick={() => setDeleteOpen(true)}>Deactivate Employee</Button>
       </Stack>
 
       <EmployeeFilterBar
@@ -43,7 +52,7 @@ const AdminEmployeesPage = () => {
 
       <EmployeeCreateDialog open={createOpen} onClose={() => setCreateOpen(false)} />
       <EmployeeUpdateDialog open={updateOpen} onClose={() => setUpdateOpen(false)} />
-      <EmployeeDeactivateDialog open={deleteOpen} onClose={() => setDeleteOpen(false)} employees={employees} />
+      <EmployeeDeactivateDialog open={deleteOpen} onClose={() => setDeleteOpen(false)} employees={manageableEmployees} />
     </Stack>
   );
 };

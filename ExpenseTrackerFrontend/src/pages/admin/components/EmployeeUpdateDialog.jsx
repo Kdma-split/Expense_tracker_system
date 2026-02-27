@@ -40,7 +40,7 @@ const EmployeeUpdateDialog = ({ open, onClose }) => {
 
   const update = async () => {
     await updateMutation.mutateAsync({
-      id,
+      id: Number(id),
       payload: {
         name: form.name,
         role: form.role,

@@ -2,6 +2,7 @@ import {
   AppBar,
   Box,
   Drawer,
+  IconButton,
   List,
   ListItemButton,
   ListItemText,
@@ -9,6 +10,8 @@ import {
   Typography,
   Button
 } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
@@ -37,11 +40,15 @@ const menuByRole = {
 const AppLayout = () => {
   const { user, logout } = useAuth();
   const menu = menuByRole[user.role] || [];
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <AppBar position="fixed" sx={{ zIndex: 1201 }}>
         <Toolbar>
+          <IconButton color="inherit" edge="start" sx={{ mr: 1 }} onClick={() => setSidebarOpen((prev) => !prev)}>
+            <MenuIcon />
+          </IconButton>
           <Typography sx={{ flexGrow: 1 }} variant="h6">
             Expense Claim System
           </Typography>
@@ -54,7 +61,8 @@ const AppLayout = () => {
         </Toolbar>
       </AppBar>
       <Drawer
-        variant="permanent"
+        variant="persistent"
+        open={sidebarOpen}
         sx={{
           width: drawerWidth,
           flexShrink: 0,
@@ -70,7 +78,7 @@ const AppLayout = () => {
           ))}
         </List>
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box component="main" sx={{ flexGrow: 1, p: 3, transition: "margin-left 0.2s ease", ml: sidebarOpen ? 0 : -`${drawerWidth}px` }}>
         <Toolbar />
         <Outlet />
       </Box>

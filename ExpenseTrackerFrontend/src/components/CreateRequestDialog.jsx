@@ -54,7 +54,7 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
         description: form.description,
         amount: Number(form.amount),
         categoryId: Number(form.categoryId),
-        dateOfExpense: form.dateOfExpense
+        dateOfExpense: new Date(`${form.dateOfExpense}T00:00:00`).toISOString()
       };
 
       if (draftId) {

@@ -7,8 +7,12 @@ import { useAppMutation } from "../../api/hooks/mutations";
 const ManagerPendingPage = () => {
   const { data } = useTeamPendingQuery({ pageNumber: 1, pageSize: 100 });
   const rows = data?.items || [];
-  const approveMutation = useAppMutation((requestId) => api.post("/requests/approve", { requestId, comments: "Approved by manager" }));
-  const rejectMutation = useAppMutation(({ requestId, comment }) => api.post("/requests/reject", { requestId, comment }));
+  const approveMutation = useAppMutation((requestId) =>
+    api.post("/requests/approve", { requestId: Number(requestId), comments: "Approved by manager" })
+  );
+  const rejectMutation = useAppMutation(({ requestId, comment }) =>
+    api.post("/requests/reject", { requestId: Number(requestId), comment })
+  );
 
   const reject = (requestId) => {
     const comment = window.prompt("Enter rejection remark");
