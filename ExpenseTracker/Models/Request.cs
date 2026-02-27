@@ -17,9 +17,9 @@ public class Request : BaseEntity
     
     public decimal Amount { get; set; }
     
-    public int CategoryId { get; set; }
+    public int? CategoryId { get; set; }
     
-    public ExpenseCategoryConfig Category { get; set; } = null!;
+    public ExpenseCategoryConfig? Category { get; set; }
     
     public DateTime DateOfExpense { get; set; }
     

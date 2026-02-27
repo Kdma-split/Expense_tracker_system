@@ -92,4 +92,18 @@ public class RequestsController : ApiControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPatch("{id:int}/category")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<RequestDto>> UpdateCategory(int id, [FromBody] UpdateRequestCategoryDto dto)
+    {
+        try
+        {
+            return Ok(await _expenseService.UpdatePaidRequestCategoryAsync(id, dto.CategoryId, GetName(), dto.Remarks));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

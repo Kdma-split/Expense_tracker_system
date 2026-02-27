@@ -23,7 +23,6 @@ public class CreateDraftValidator : AbstractValidator<CreateDraftDto>
         RuleFor(x => x.Subject).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Description).NotEmpty().MaximumLength(2000);
         RuleFor(x => x.Amount).GreaterThan(0).WithMessage("Amount must be greater than zero");
-        RuleFor(x => x.CategoryId).GreaterThan(0);
         RuleFor(x => x.DateOfExpense)
             .LessThanOrEqualTo(DateTime.UtcNow.Date.AddDays(1))
             .WithMessage("Date of expense cannot be in the future");
@@ -37,7 +36,6 @@ public class UpdateDraftValidator : AbstractValidator<UpdateDraftDto>
         RuleFor(x => x.Subject).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Description).NotEmpty().MaximumLength(2000);
         RuleFor(x => x.Amount).GreaterThan(0).WithMessage("Amount must be greater than zero");
-        RuleFor(x => x.CategoryId).GreaterThan(0);
         RuleFor(x => x.DateOfExpense)
             .LessThanOrEqualTo(DateTime.UtcNow.Date.AddDays(1))
             .WithMessage("Date of expense cannot be in the future");
@@ -74,6 +72,15 @@ public class FinancePaymentValidator : AbstractValidator<FinancePaymentDto>
     {
         RuleFor(x => x.RequestId).GreaterThan(0);
         RuleFor(x => x.Notes).MaximumLength(1000);
+    }
+}
+
+public class UpdateRequestCategoryValidator : AbstractValidator<UpdateRequestCategoryDto>
+{
+    public UpdateRequestCategoryValidator()
+    {
+        RuleFor(x => x.CategoryId).GreaterThan(0);
+        RuleFor(x => x.Remarks).MaximumLength(1000);
     }
 }
 

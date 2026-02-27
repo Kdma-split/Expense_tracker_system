@@ -27,7 +27,7 @@ const EmployeeDraftsPage = () => {
                 <TableCell>ID</TableCell>
                 <TableCell>Subject</TableCell>
                 <TableCell>Amount</TableCell>
-                <TableCell>Category</TableCell>
+                <TableCell>Category (Admin Set After Payment)</TableCell>
                 <TableCell>Date</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -38,7 +38,7 @@ const EmployeeDraftsPage = () => {
                   <TableCell>{d.id}</TableCell>
                   <TableCell>{d.subject}</TableCell>
                   <TableCell>{d.amount}</TableCell>
-                  <TableCell>{d.categoryName}</TableCell>
+                  <TableCell>{d.categoryName || "Uncategorized"}</TableCell>
                   <TableCell>{new Date(d.dateOfExpense).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={1}>

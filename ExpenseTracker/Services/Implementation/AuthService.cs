@@ -24,8 +24,9 @@ public class AuthService : IAuthService
     
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var profile = (await _unitOfWork.EmployeeProfiles.GetAllAsync())
-            .FirstOrDefault(p => p.Email == request.Email.Trim().ToLowerInvariant());
+            .FirstOrDefault(p => (p.Email ?? string.Empty).Trim().ToLowerInvariant() == normalizedEmail);
         
         if (profile == null) return null;
         

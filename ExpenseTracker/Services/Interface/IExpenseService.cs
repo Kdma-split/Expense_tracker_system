@@ -24,6 +24,7 @@ public interface IExpenseService
     Task<ApprovedDto> ApproveRequestAsync(int requestId, int managerId, string managerName, ApproveRequestDto dto);
     Task<RejectedDto> RejectRequestAsync(int requestId, int managerId, RejectRequestDto dto);
     Task<FinanceStatusDto> ProcessPaymentAsync(int requestId, string processedBy, FinancePaymentDto dto);
+    Task<RequestDto> UpdatePaidRequestCategoryAsync(int requestId, int categoryId, string actor, string? remarks);
 
     Task<IEnumerable<MonthlyExpenseSummaryDto>> GetMonthlyExpenseSummaryAsync(int year, int month);
     Task<DashboardStatsDto> GetDashboardStatsAsync(int year, int month);

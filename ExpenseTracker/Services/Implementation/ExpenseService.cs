@@ -91,7 +91,7 @@ public class ExpenseService : IExpenseService
 
     public async Task<DraftDto> CreateDraftAsync(int employeeId, CreateDraftDto dto)
     {
-        await ValidateCategoryAsync(dto.CategoryId);
+        var categoryId = await GetOrCreateUncategorizedCategoryIdAsync();
 
         var draft = new Draft
         {
@@ -99,7 +99,7 @@ public class ExpenseService : IExpenseService
             Subject = dto.Subject.Trim(),
             Description = dto.Description.Trim(),
             Amount = dto.Amount,
-            CategoryId = dto.CategoryId,
+            CategoryId = categoryId,
             DateOfExpense = dto.DateOfExpense.Date,
             DraftDate = DateTime.UtcNow,
             CreatedBy = employeeId.ToString(),
@@ -110,7 +110,7 @@ public class ExpenseService : IExpenseService
         await _db.SaveChangesAsync();
 
         var categoryName = await _db.ExpenseCategories
-            .Where(c => c.Id == dto.CategoryId)
+            .Where(c => c.Id == categoryId)
             .Select(c => c.Name)
             .FirstAsync();
 
@@ -122,7 +122,7 @@ public class ExpenseService : IExpenseService
 
     public async Task UpdateDraftAsync(int id, int employeeId, UpdateDraftDto dto)
     {
-        await ValidateCategoryAsync(dto.CategoryId);
+        var categoryId = await GetOrCreateUncategorizedCategoryIdAsync();
 
         var draft = await _db.Drafts.FirstOrDefaultAsync(d => d.Id == id && d.EmployeeId == employeeId)
             ?? throw new InvalidOperationException("Draft not found");
@@ -130,7 +130,7 @@ public class ExpenseService : IExpenseService
         draft.Subject = dto.Subject.Trim();
         draft.Description = dto.Description.Trim();
         draft.Amount = dto.Amount;
-        draft.CategoryId = dto.CategoryId;
+        draft.CategoryId = categoryId;
         draft.DateOfExpense = dto.DateOfExpense.Date;
         draft.UpdatedDate = DateTime.UtcNow;
         draft.UpdatedBy = employeeId.ToString();
@@ -157,7 +157,6 @@ public class ExpenseService : IExpenseService
             r.Subject == draft.Subject &&
             r.Description == draft.Description &&
             r.Amount == draft.Amount &&
-            r.CategoryId == draft.CategoryId &&
             r.DateOfExpense == draft.DateOfExpense &&
             r.Status != RequestStatus.Rejected);
 
@@ -306,7 +305,7 @@ public class ExpenseService : IExpenseService
         await _db.SaveChangesAsync();
         return new RequestDto(
             request.Id, request.EmployeeId, request.Subject, request.Description, request.Amount,
-            request.CategoryId, request.Category.Name, request.DateOfExpense, request.CreatedAt, request.Status
+            request.CategoryId, request.Category?.Name, request.DateOfExpense, request.CreatedAt, request.Status
         );
     }
 
@@ -331,7 +330,7 @@ public class ExpenseService : IExpenseService
         {
             RequestId = requestId,
             TotalAmount = request.Amount,
-            CategoryId = request.CategoryId,
+            CategoryId = request.CategoryId ?? await GetOrCreateUncategorizedCategoryIdAsync(),
             Status = ApprovedStatus.Pending,
             CreatedBy = managerName,
             CreatedDate = DateTime.UtcNow
@@ -467,6 +466,60 @@ public class ExpenseService : IExpenseService
         return new FinanceStatusDto(financeStatus.Id, financeStatus.RequestId, financeStatus.Status, financeStatus.ProcessedBy, financeStatus.PaymentDate);
     }
 
+    public async Task<RequestDto> UpdatePaidRequestCategoryAsync(int requestId, int categoryId, string actor, string? remarks)
+    {
+        await ValidateCategoryAsync(categoryId);
+
+        var request = await _db.Requests
+            .Include(r => r.Category)
+            .FirstOrDefaultAsync(r => r.Id == requestId)
+            ?? throw new InvalidOperationException("Request not found");
+
+        if (request.Status != RequestStatus.Paid)
+        {
+            throw new InvalidOperationException("Category can only be assigned after finance payment");
+        }
+
+        var previousCategoryName = request.Category?.Name ?? "Unassigned";
+        request.CategoryId = categoryId;
+        request.UpdatedBy = actor;
+        request.UpdatedDate = DateTime.UtcNow;
+
+        var approved = await _db.ApprovedItems.FirstOrDefaultAsync(a => a.RequestId == requestId);
+        if (approved != null)
+        {
+            approved.CategoryId = categoryId;
+            approved.UpdatedBy = actor;
+            approved.UpdatedDate = DateTime.UtcNow;
+        }
+
+        var newCategoryName = await _db.ExpenseCategories
+            .Where(c => c.Id == categoryId)
+            .Select(c => c.Name)
+            .FirstAsync();
+
+        _db.StatusHistory.Add(new StatusHistory
+        {
+            RequestId = request.Id,
+            FromStatus = RequestStatus.Paid,
+            ToStatus = RequestStatus.Paid,
+            ChangedBy = actor,
+            Remarks = string.IsNullOrWhiteSpace(remarks)
+                ? $"Category updated from '{previousCategoryName}' to '{newCategoryName}'"
+                : remarks,
+            ChangedAt = DateTime.UtcNow,
+            CreatedBy = actor,
+            CreatedDate = DateTime.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+
+        return new RequestDto(
+            request.Id, request.EmployeeId, request.Subject, request.Description, request.Amount, request.CategoryId,
+            newCategoryName, request.DateOfExpense, request.CreatedAt, request.Status
+        );
+    }
+
     public async Task<IEnumerable<MonthlyExpenseSummaryDto>> GetMonthlyExpenseSummaryAsync(int year, int month)
     {
         var start = new DateTime(year, month, 1);
@@ -476,8 +529,12 @@ public class ExpenseService : IExpenseService
             .AsNoTracking()
             .Include(r => r.Category)
             .Where(r => r.CreatedAt >= start && r.CreatedAt < end && r.Status != RequestStatus.Rejected)
-            .GroupBy(r => new { r.CategoryId, r.Category.Name })
-            .Select(g => new MonthlyExpenseSummaryDto(year, month, g.Key.CategoryId, g.Key.Name, g.Sum(x => x.Amount), g.Count()))
+            .GroupBy(r => new
+            {
+                CategoryId = r.CategoryId ?? 0,
+                CategoryName = r.Category != null ? r.Category.Name : "Uncategorized"
+            })
+            .Select(g => new MonthlyExpenseSummaryDto(year, month, g.Key.CategoryId, g.Key.CategoryName, g.Sum(x => x.Amount), g.Count()))
             .OrderBy(x => x.CategoryName)
             .ToListAsync();
     }
@@ -516,6 +573,32 @@ public class ExpenseService : IExpenseService
         {
             throw new InvalidOperationException("Invalid or inactive category");
         }
+    }
+
+    private async Task<int> GetOrCreateUncategorizedCategoryIdAsync()
+    {
+        const string uncategorized = "Uncategorized";
+        var existingId = await _db.ExpenseCategories
+            .Where(c => c.Name == uncategorized && c.IsActive)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync();
+
+        if (existingId > 0)
+        {
+            return existingId;
+        }
+
+        var category = new ExpenseCategoryConfig
+        {
+            Name = uncategorized,
+            IsActive = true,
+            CreatedBy = "System",
+            CreatedDate = DateTime.UtcNow
+        };
+
+        _db.ExpenseCategories.Add(category);
+        await _db.SaveChangesAsync();
+        return category.Id;
     }
 
     private async Task<List<int>> GetTeamMemberIdsAsync(int managerId)
@@ -575,7 +658,7 @@ public class ExpenseService : IExpenseService
     {
         return d => new DraftDto(
             d.Id, d.EmployeeId, d.Subject, d.Description, d.Amount, d.CategoryId,
-            d.Category.Name, d.DateOfExpense, d.DraftDate
+            d.Category != null ? d.Category.Name : null, d.DateOfExpense, d.DraftDate
         );
     }
 
@@ -583,7 +666,7 @@ public class ExpenseService : IExpenseService
     {
         return r => new RequestDto(
             r.Id, r.EmployeeId, r.Subject, r.Description, r.Amount, r.CategoryId,
-            r.Category.Name, r.DateOfExpense, r.CreatedAt, r.Status
+            r.Category != null ? r.Category.Name : null, r.DateOfExpense, r.CreatedAt, r.Status
         );
     }
 }

@@ -21,8 +21,8 @@ public record DraftDto(
     string Subject,
     string Description,
     decimal Amount,
-    int CategoryId,
-    string CategoryName,
+    int? CategoryId,
+    string? CategoryName,
     DateTime DateOfExpense,
     DateTime DraftDate
 );
@@ -31,7 +31,6 @@ public record CreateDraftDto(
     string Subject,
     string Description,
     decimal Amount,
-    int CategoryId,
     DateTime DateOfExpense
 );
 
@@ -39,7 +38,6 @@ public record UpdateDraftDto(
     string Subject,
     string Description,
     decimal Amount,
-    int CategoryId,
     DateTime DateOfExpense
 );
 
@@ -49,8 +47,8 @@ public record RequestDto(
     string Subject,
     string Description,
     decimal Amount,
-    int CategoryId,
-    string CategoryName,
+    int? CategoryId,
+    string? CategoryName,
     DateTime DateOfExpense,
     DateTime CreatedAt,
     RequestStatus Status
@@ -74,6 +72,7 @@ public record RejectRequestDto(int RequestId, string Comment);
 public record ResubmitRequestDto(int RequestId);
 
 public record FinancePaymentDto(int RequestId, string? Notes);
+public record UpdateRequestCategoryDto(int CategoryId, string? Remarks);
 
 public record FinanceStatusDto(
     int Id,

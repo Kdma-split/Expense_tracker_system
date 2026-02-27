@@ -21,7 +21,7 @@ const RequestTable = ({ rows, actions }) => (
           <TableCell>{row.id}</TableCell>
           <TableCell>{row.employeeId}</TableCell>
           <TableCell>{row.subject}</TableCell>
-          <TableCell>{row.categoryName}</TableCell>
+          <TableCell>{row.categoryName || "Uncategorized"}</TableCell>
           <TableCell>{row.amount}</TableCell>
           <TableCell>{new Date(row.createdAt || row.dateOfExpense).toLocaleDateString()}</TableCell>
           <TableCell>
