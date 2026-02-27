@@ -11,6 +11,26 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #dfe9f3 0%, #ffffff 100%);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(15, 76, 129, 0.18), transparent 35%),
+    radial-gradient(circle at 80% 80%, rgba(42, 157, 143, 0.22), transparent 35%),
+    linear-gradient(135deg, #f8fbff 0%, #eef3f9 100%);
   padding: 24px;
+}
+
+.login-card {
+  width: 450px;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(13, 42, 67, 0.18);
+  border: 1px solid rgba(15, 76, 129, 0.12);
+}
+
+.login-title {
+  letter-spacing: 0.2px;
+  font-weight: 700;
+  color: #0c3558;
+}
+
+.login-subtitle {
+  color: #35556f;
 }
