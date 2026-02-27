@@ -1,5 +1,19 @@
-import { useMemo, useState } from "react";
-import { Button, Card, CardContent, Grid, Stack, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Collapse,
+  Divider,
+  Grid,
+  Stack,
+  Tab,
+  TablePagination,
+  Tabs,
+  Typography
+} from "@mui/material";
 import RequestTable from "../../components/RequestTable";
 import { REQUEST_STATUS, STATUS_LABEL } from "../../components/constants";
 import { useEmployeesQuery } from "../../api/hooks/employees";
@@ -13,6 +27,16 @@ import CategoryBarChartCard from "./components/CategoryBarChartCard";
 import TrendLineChartCard from "./components/TrendLineChartCard";
 import AssignCategoryDialog from "./components/AssignCategoryDialog";
 
+const defaultFilters = {
+  fromDate: "",
+  toDate: "",
+  employee: "",
+  status: "",
+  sortBy: "date",
+  sortOrder: "asc",
+  highAmountOnly: false
+};
+
 const AdminAnalyticsPage = () => {
   const { data: requestData } = useRequestsQuery({ pageNumber: 1, pageSize: 500 });
   const { data: employees = [] } = useEmployeesQuery(true);
@@ -20,16 +44,15 @@ const AdminAnalyticsPage = () => {
   const assignCategoryMutation = useAppMutation(({ requestId, payload }) =>
     api.patch(`/requests/${requestId}/category`, payload)
   );
+
   const requests = requestData?.items || [];
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [filters, setFilters] = useState({
-    fromDate: "",
-    toDate: "",
-    employee: "",
-    status: "",
-    sortBy: "date",
-    sortOrder: "asc"
-  });
+  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [draftFilters, setDraftFilters] = useState(defaultFilters);
+  const [filters, setFilters] = useState(defaultFilters);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const employeeIdFromFilter = useMemo(() => {
     if (!filters.employee) return null;
@@ -47,6 +70,7 @@ const AdminAnalyticsPage = () => {
     if (filters.toDate) data = data.filter((r) => new Date(r.createdAt) <= new Date(filters.toDate));
     if (employeeIdFromFilter) data = data.filter((r) => r.employeeId === employeeIdFromFilter);
     if (filters.status !== "") data = data.filter((r) => String(r.status) === String(filters.status));
+    if (filters.highAmountOnly) data = data.filter((r) => Number(r.amount || 0) >= 1000);
 
     const factor = filters.sortOrder === "asc" ? 1 : -1;
     data.sort((a, b) => {
@@ -55,6 +79,16 @@ const AdminAnalyticsPage = () => {
     });
     return data;
   }, [requests, filters, employeeIdFromFilter]);
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(filtered.length / rowsPerPage) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [filtered.length, rowsPerPage, page]);
+
+  const pagedRows = useMemo(() => {
+    const start = page * rowsPerPage;
+    return filtered.slice(start, start + rowsPerPage);
+  }, [filtered, page, rowsPerPage]);
 
   const byStatus = useMemo(() => {
     const map = {};
@@ -81,6 +115,57 @@ const AdminAnalyticsPage = () => {
     });
     return Object.entries(map).map(([date, amount]) => ({ date, amount }));
   }, [filtered]);
+
+  const totals = useMemo(() => {
+    const totalAmount = filtered.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    const pendingCount = filtered.filter((r) => r.status === REQUEST_STATUS.Submitted).length;
+    const avg = filtered.length ? totalAmount / filtered.length : 0;
+    return { totalAmount, pendingCount, avg, count: filtered.length };
+  }, [filtered]);
+
+  const quickApply = (patch) => {
+    const next = { ...filters, ...patch };
+    setDraftFilters(next);
+    setFilters(next);
+    setPage(0);
+  };
+
+  const applyFilters = () => {
+    setFilters(draftFilters);
+    setPage(0);
+  };
+
+  const resetFilters = () => {
+    setDraftFilters(defaultFilters);
+    setFilters(defaultFilters);
+    setPage(0);
+  };
+
+  const activeFilterChips = useMemo(() => {
+    const chips = [];
+    if (filters.fromDate) chips.push({ key: "fromDate", label: `From: ${filters.fromDate}` });
+    if (filters.toDate) chips.push({ key: "toDate", label: `To: ${filters.toDate}` });
+    if (filters.employee) chips.push({ key: "employee", label: `Employee: ${filters.employee}` });
+    if (filters.status !== "") chips.push({ key: "status", label: `Status: ${STATUS_LABEL[filters.status]}` });
+    if (filters.highAmountOnly) chips.push({ key: "highAmountOnly", label: "High Amount (>= 1000)" });
+    chips.push({ key: "sort", label: `Sort: ${filters.sortBy} ${filters.sortOrder}` });
+    return chips;
+  }, [filters]);
+
+  const clearOneFilter = (key) => {
+    const next = { ...filters };
+    if (key === "sort") {
+      next.sortBy = defaultFilters.sortBy;
+      next.sortOrder = defaultFilters.sortOrder;
+    } else if (key === "highAmountOnly") {
+      next.highAmountOnly = false;
+    } else {
+      next[key] = defaultFilters[key];
+    }
+    setDraftFilters(next);
+    setFilters(next);
+    setPage(0);
+  };
 
   const exportFilteredToCsv = () => {
     const rows = filtered.map((r) => ({
@@ -131,44 +216,146 @@ const AdminAnalyticsPage = () => {
   return (
     <Grid container spacing={2}>
       <Grid size={{ xs: 12, md: 3 }}>
-        <AnalyticsFilterPanel filters={filters} setFilters={setFilters} statusLabelMap={STATUS_LABEL} />
+        <Stack spacing={1.5}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">Filters</Typography>
+            <Button size="small" onClick={() => setFiltersOpen((prev) => !prev)}>
+              {filtersOpen ? "Hide" : "Show"}
+            </Button>
+          </Stack>
+          <Collapse in={filtersOpen}>
+            <Stack spacing={1}>
+              <AnalyticsFilterPanel filters={draftFilters} setFilters={setDraftFilters} statusLabelMap={STATUS_LABEL} />
+              <Stack direction="row" spacing={1}>
+                <Button variant="contained" onClick={applyFilters} fullWidth>
+                  Apply
+                </Button>
+                <Button variant="outlined" onClick={resetFilters} fullWidth>
+                  Reset
+                </Button>
+              </Stack>
+            </Stack>
+          </Collapse>
+        </Stack>
       </Grid>
 
       <Grid size={{ xs: 12, md: 9 }}>
         <Stack spacing={2}>
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }}>
+            <Box>
+              <Typography variant="h5">Analytics</Typography>
+              <Typography variant="body2">{filtered.length} results</Typography>
+            </Box>
             <Button variant="contained" onClick={exportFilteredToCsv}>
               Export CSV
             </Button>
           </Stack>
-          <Card>
-            <CardContent>
-              <Typography variant="h6">Filtered Requests</Typography>
-              <RequestTable
-                rows={filtered}
-                actions={(row) =>
-                  row.status === REQUEST_STATUS.Paid ? (
-                    <Button size="small" variant="outlined" onClick={() => setSelectedRequest(row)}>
-                      Set Category
-                    </Button>
-                  ) : null
-                }
-              />
-            </CardContent>
-          </Card>
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <StatusPieChartCard data={byStatus} />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <CategoryBarChartCard data={byCategory} />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <TrendLineChartCard data={trend} />
-            </Grid>
-          </Grid>
+
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Chip label="Paid" onClick={() => quickApply({ status: String(REQUEST_STATUS.Paid) })} />
+            <Chip label="Rejected" onClick={() => quickApply({ status: String(REQUEST_STATUS.Rejected) })} />
+            <Chip
+              label="This Month"
+              onClick={() => {
+                const now = new Date();
+                const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+                const to = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+                quickApply({ fromDate: from, toDate: to });
+              }}
+            />
+            <Chip
+              label="High Amount"
+              onClick={() => quickApply({ highAmountOnly: !filters.highAmountOnly })}
+              color={filters.highAmountOnly ? "primary" : "default"}
+            />
+          </Stack>
+
+          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
+            <Tab label="Overview" value="overview" />
+            <Tab label="Requests" value="requests" />
+          </Tabs>
+
+          {activeTab === "overview" ? (
+            <Stack spacing={2}>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <Card><CardContent><Typography variant="caption">Total Amount</Typography><Typography variant="h6">{totals.totalAmount.toFixed(2)}</Typography></CardContent></Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <Card><CardContent><Typography variant="caption">Request Count</Typography><Typography variant="h6">{totals.count}</Typography></CardContent></Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <Card><CardContent><Typography variant="caption">Average Claim</Typography><Typography variant="h6">{totals.avg.toFixed(2)}</Typography></CardContent></Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <Card><CardContent><Typography variant="caption">Pending Count</Typography><Typography variant="h6">{totals.pendingCount}</Typography></CardContent></Card>
+                </Grid>
+              </Grid>
+
+              <StatusPieChartCard data={byStatus} title="Status Distribution" height={460} outerRadius={165} />
+
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <CategoryBarChartCard data={byCategory} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TrendLineChartCard data={trend} />
+                </Grid>
+              </Grid>
+            </Stack>
+          ) : (
+            <Card>
+              <CardContent>
+                <Typography variant="h6">Filtered Requests</Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Sort: {filters.sortBy} ({filters.sortOrder})
+                </Typography>
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mb: 2 }}>
+                  {activeFilterChips.map((chip) => (
+                    <Chip key={chip.key} label={chip.label} onDelete={() => clearOneFilter(chip.key)} />
+                  ))}
+                </Stack>
+                <Divider sx={{ mb: 2 }} />
+
+                {filtered.length === 0 ? (
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle1">No data for current filters</Typography>
+                      <Typography variant="body2">Try removing one or more filters or click Reset in the filter panel.</Typography>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    <RequestTable
+                      rows={pagedRows}
+                      actions={(row) =>
+                        row.status === REQUEST_STATUS.Paid ? (
+                          <Button size="small" variant="outlined" onClick={() => setSelectedRequest(row)}>
+                            Set Category
+                          </Button>
+                        ) : null
+                      }
+                    />
+                    <TablePagination
+                      component="div"
+                      count={filtered.length}
+                      page={page}
+                      onPageChange={(_, nextPage) => setPage(nextPage)}
+                      rowsPerPage={rowsPerPage}
+                      onRowsPerPageChange={(e) => {
+                        setRowsPerPage(Number(e.target.value));
+                        setPage(0);
+                      }}
+                      rowsPerPageOptions={[10, 20, 50]}
+                    />
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </Stack>
       </Grid>
+
       <AssignCategoryDialog
         open={Boolean(selectedRequest)}
         onClose={() => setSelectedRequest(null)}
