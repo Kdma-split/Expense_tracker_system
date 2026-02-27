@@ -64,9 +64,14 @@ const AppLayout = () => {
         variant="persistent"
         open={sidebarOpen}
         sx={{
-          width: drawerWidth,
+          width: sidebarOpen ? drawerWidth : 0,
           flexShrink: 0,
-          "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" }
+          transition: "width 0.2s ease",
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+            transition: "transform 0.2s ease"
+          }
         }}
       >
         <Toolbar />
