@@ -82,6 +82,52 @@ const AdminAnalyticsPage = () => {
     return Object.entries(map).map(([date, amount]) => ({ date, amount }));
   }, [filtered]);
 
+  const exportFilteredToCsv = () => {
+    const rows = filtered.map((r) => ({
+      id: r.id,
+      employeeId: r.employeeId,
+      subject: r.subject,
+      description: r.description,
+      categoryName: r.categoryName || "Uncategorized",
+      amount: r.amount,
+      dateOfExpense: r.dateOfExpense,
+      createdAt: r.createdAt,
+      status: STATUS_LABEL[r.status] || r.status
+    }));
+
+    const headers = [
+      "id",
+      "employeeId",
+      "subject",
+      "description",
+      "categoryName",
+      "amount",
+      "dateOfExpense",
+      "createdAt",
+      "status"
+    ];
+
+    const escapeCsv = (value) => {
+      const raw = value == null ? "" : String(value);
+      return /[",\n]/.test(raw) ? `"${raw.replace(/"/g, "\"\"")}"` : raw;
+    };
+
+    const csv = [
+      headers.join(","),
+      ...rows.map((row) => headers.map((h) => escapeCsv(row[h])).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "filtered-requests.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Grid container spacing={2}>
       <Grid size={{ xs: 12, md: 3 }}>
@@ -90,6 +136,11 @@ const AdminAnalyticsPage = () => {
 
       <Grid size={{ xs: 12, md: 9 }}>
         <Stack spacing={2}>
+          <Stack direction="row" justifyContent="flex-end">
+            <Button variant="contained" onClick={exportFilteredToCsv}>
+              Export CSV
+            </Button>
+          </Stack>
           <Card>
             <CardContent>
               <Typography variant="h6">Filtered Requests</Typography>
