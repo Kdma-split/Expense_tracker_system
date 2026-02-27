@@ -5,8 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
-  Divider,
   Stack,
   TextField,
   Typography
@@ -83,44 +81,6 @@ const LoginPage = () => {
               </Button>
             </Stack>
           </form>
-          <Divider sx={{ my: 3 }} />
-          <Typography variant="caption" sx={{ display: "block", mb: 1.2, opacity: 0.75 }}>
-            Demo accounts
-          </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Chip
-              label="Admin"
-              onClick={() => {
-                setEmail("admin@company.com");
-                setPassword("Admin123!");
-              }}
-              clickable
-            />
-            <Chip
-              label="Finance"
-              onClick={() => {
-                setEmail("finance@company.com");
-                setPassword("Finance123!");
-              }}
-              clickable
-            />
-            <Chip
-              label="Manager"
-              onClick={() => {
-                setEmail("manager@company.com");
-                setPassword("Manager123!");
-              }}
-              clickable
-            />
-            <Chip
-              label="Employee"
-              onClick={() => {
-                setEmail("employee@company.com");
-                setPassword("Employee123!");
-              }}
-              clickable
-            />
-          </Stack>
         </CardContent>
       </Card>
     </Box>
