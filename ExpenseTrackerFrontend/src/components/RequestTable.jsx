@@ -1,5 +1,5 @@
 import { Chip, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import { STATUS_LABEL } from "./constants";
+import { STATUS_LABEL, STATUS_COLOR } from "./constants";
 
 const RequestTable = ({ rows, actions }) => (
   <Table size="small">
@@ -25,7 +25,7 @@ const RequestTable = ({ rows, actions }) => (
           <TableCell>{row.amount}</TableCell>
           <TableCell>{new Date(row.createdAt || row.dateOfExpense).toLocaleDateString()}</TableCell>
           <TableCell>
-            <Chip label={STATUS_LABEL[row.status]} size="small" />
+            <Chip label={STATUS_LABEL[row.status]} size="small" color={STATUS_COLOR[row.status]} />
           </TableCell>
           {actions ? <TableCell>{actions(row)}</TableCell> : null}
         </TableRow>

@@ -5,8 +5,10 @@ import LoginPage from "./pages/LoginPage";
 import EmployeeDraftsPage from "./pages/employee/EmployeeDraftsPage";
 import EmployeeSubmittedPage from "./pages/employee/EmployeeSubmittedPage";
 import EmployeeApprovedPage from "./pages/employee/EmployeeApprovedPage";
+import EmployeeRejectedPage from "./pages/employee/EmployeeRejectedPage";
 import ManagerPendingPage from "./pages/manager/ManagerPendingPage";
 import ManagerApprovedPage from "./pages/manager/ManagerApprovedPage";
+import ManagerRejectedPage from "./pages/manager/ManagerRejectedPage";
 import FinancePendingPage from "./pages/finance/FinancePendingPage";
 import FinanceApprovedPage from "./pages/finance/FinanceApprovedPage";
 import AdminEmployeesPage from "./pages/admin/AdminEmployeesPage";
@@ -29,9 +31,11 @@ const App = () => (
       <Route path="employee/drafts" element={<ProtectedRoute roles={["Employee"]}><EmployeeDraftsPage /></ProtectedRoute>} />
       <Route path="employee/submitted" element={<ProtectedRoute roles={["Employee"]}><EmployeeSubmittedPage /></ProtectedRoute>} />
       <Route path="employee/approved" element={<ProtectedRoute roles={["Employee"]}><EmployeeApprovedPage /></ProtectedRoute>} />
+      <Route path="employee/rejected" element={<ProtectedRoute roles={["Employee"]}><EmployeeRejectedPage /></ProtectedRoute>} />
 
       <Route path="manager/pending" element={<ProtectedRoute roles={["Manager"]}><ManagerPendingPage /></ProtectedRoute>} />
       <Route path="manager/approved" element={<ProtectedRoute roles={["Manager"]}><ManagerApprovedPage /></ProtectedRoute>} />
+      <Route path="manager/rejected" element={<ProtectedRoute roles={["Manager"]}><ManagerRejectedPage /></ProtectedRoute>} />
 
       <Route path="finance/pending" element={<ProtectedRoute roles={["Finance"]}><FinancePendingPage /></ProtectedRoute>} />
       <Route path="finance/approved" element={<ProtectedRoute roles={["Finance"]}><FinanceApprovedPage /></ProtectedRoute>} />

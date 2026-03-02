@@ -21,11 +21,13 @@ const menuByRole = {
   Employee: [
     { label: "Drafts", path: "/employee/drafts" },
     { label: "Submitted Requests", path: "/employee/submitted" },
-    { label: "Approved Requests", path: "/employee/approved" }
+    { label: "Approved Requests", path: "/employee/approved" },
+    { label: "Rejected Requests", path: "/employee/rejected" }
   ],
   Manager: [
     { label: "Pending Requests", path: "/manager/pending" },
-    { label: "Approved Requests", path: "/manager/approved" }
+    { label: "Approved Requests", path: "/manager/approved" },
+    { label: "Rejected Requests", path: "/manager/rejected" }
   ],
   Finance: [
     { label: "Pending Requests", path: "/finance/pending" },

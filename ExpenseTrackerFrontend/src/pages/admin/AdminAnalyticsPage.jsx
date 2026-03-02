@@ -15,7 +15,7 @@ import {
   Typography
 } from "@mui/material";
 import RequestTable from "../../components/RequestTable";
-import { REQUEST_STATUS, STATUS_LABEL } from "../../components/constants";
+import { REQUEST_STATUS, STATUS_LABEL, STATUS_COLOR } from "../../components/constants";
 import { useEmployeesQuery } from "../../api/hooks/employees";
 import { useRequestsQuery } from "../../api/hooks/requests";
 import { useCategoriesQuery } from "../../api/hooks/categories";
@@ -252,8 +252,8 @@ const AdminAnalyticsPage = () => {
           </Stack>
 
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            <Chip label="Paid" onClick={() => quickApply({ status: String(REQUEST_STATUS.Paid) })} />
-            <Chip label="Rejected" onClick={() => quickApply({ status: String(REQUEST_STATUS.Rejected) })} />
+            <Chip label="Paid" onClick={() => quickApply({ status: String(REQUEST_STATUS.Paid) })} color={STATUS_COLOR[REQUEST_STATUS.Paid]} />
+            <Chip label="Rejected" onClick={() => quickApply({ status: String(REQUEST_STATUS.Rejected) })} color={STATUS_COLOR[REQUEST_STATUS.Rejected]} />
             <Chip
               label="This Month"
               onClick={() => {
