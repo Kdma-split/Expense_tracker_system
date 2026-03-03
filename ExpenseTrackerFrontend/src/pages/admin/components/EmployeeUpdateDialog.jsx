@@ -1,7 +1,17 @@
 import { useState } from "react";
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from "@mui/material";
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, Stack, TextField } from "@mui/material";
 import { api } from "../../../api/client";
 import { useAppMutation } from "../../../api/hooks/mutations";
+
+const DEPARTMENTS = [
+  "Microsoft",
+  "SalesForce",
+  "SAP Technical",
+  "Sap MM",
+  "Sap OTC",
+  "Gen Ai",
+  "Data Analytics"
+];
 
 const EmployeeUpdateDialog = ({ open, onClose }) => {
   const [id, setId] = useState("");
@@ -69,7 +79,18 @@ const EmployeeUpdateDialog = ({ open, onClose }) => {
           {error ? <Alert severity="warning">{error}</Alert> : null}
           <TextField label="Name" value={form.name} disabled={!editable || loading} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <TextField label="Role" value={form.role} disabled={!editable || loading} onChange={(e) => setForm({ ...form, role: e.target.value })} />
-          <TextField label="Department" value={form.department} disabled={!editable || loading} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+          <FormControl fullWidth disabled={!editable || loading}>
+            <InputLabel>Department</InputLabel>
+            <Select
+              label="Department"
+              value={form.department}
+              onChange={(e) => setForm({ ...form, department: e.target.value })}
+            >
+              {DEPARTMENTS.map((dept) => (
+                <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField label="Manager Id" value={form.managerId} disabled={!editable || loading} onChange={(e) => setForm({ ...form, managerId: e.target.value })} />
           <TextField label="New Password (optional)" type="password" value={form.password} disabled={!editable || loading} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         </Stack>

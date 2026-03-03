@@ -1,5 +1,4 @@
 export const REQUEST_STATUS = {
-  Draft: 0,
   Submitted: 1,
   Approved: 2,
   Rejected: 3,
@@ -7,7 +6,6 @@ export const REQUEST_STATUS = {
 };
 
 export const STATUS_LABEL = {
-  0: "Draft",
   1: "Submitted",
   2: "Approved",
   3: "Rejected",
@@ -15,7 +13,6 @@ export const STATUS_LABEL = {
 };
 
 export const STATUS_COLOR = {
-  0: "default",    // Draft - Gray/Default
   1: "info",       // Submitted - Blue
   2: "success",    // Approved - Green
   3: "error",      // Rejected - Red

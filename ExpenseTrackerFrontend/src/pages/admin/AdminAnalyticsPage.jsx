@@ -58,10 +58,10 @@ const AdminAnalyticsPage = () => {
     if (!filters.employee) return null;
     if (filters.employee.includes("@")) {
       const found = employees.find((e) => e.email.toLowerCase() === filters.employee.toLowerCase());
-      return found?.id || null;
+      return found ? found.id : -1;
     }
     const num = Number(filters.employee);
-    return Number.isNaN(num) ? null : num;
+    return Number.isNaN(num) ? -1 : num;
   }, [filters.employee, employees]);
 
   const filtered = useMemo(() => {
@@ -215,7 +215,7 @@ const AdminAnalyticsPage = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid size={{ xs: 12, md: 3 }}>
+      <Grid size={{ xs: 12, md: filtersOpen ? 3 : 0 }}>
         <Stack spacing={1.5}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="h6">Filters</Typography>
@@ -239,7 +239,7 @@ const AdminAnalyticsPage = () => {
         </Stack>
       </Grid>
 
-      <Grid size={{ xs: 12, md: 9 }}>
+      <Grid size={{ xs: 12, md: filtersOpen ? 9 : 12 }}>
         <Stack spacing={2}>
           <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }}>
             <Box>

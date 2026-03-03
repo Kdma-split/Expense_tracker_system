@@ -16,6 +16,16 @@ import {
 import { api } from "../../../api/client";
 import { useAppMutation } from "../../../api/hooks/mutations";
 
+const DEPARTMENTS = [
+  "Microsoft",
+  "SalesForce",
+  "SAP Technical",
+  "Sap MM",
+  "Sap OTC",
+  "Gen Ai",
+  "Data Analytics"
+];
+
 const EmployeeCreateDialog = ({ open, onClose }) => {
   const [form, setForm] = useState({
     name: "",
@@ -33,7 +43,7 @@ const EmployeeCreateDialog = ({ open, onClose }) => {
     if (!form.email.trim()) return "Email is required";
     if (!/\S+@\S+\.\S+/.test(form.email.trim())) return "Email format is invalid";
     if (!form.password || form.password.length < 6) return "Password must be at least 6 characters";
-    if (!form.department.trim()) return "Department is required";
+    if (!form.department) return "Department is required";
     if (!(form.role === "Employee" || form.role === "Manager")) return "Role must be Employee or Manager";
     if (form.managerId.trim()) {
       const managerId = Number(form.managerId.trim());
@@ -56,7 +66,7 @@ const EmployeeCreateDialog = ({ open, onClose }) => {
         password: form.password,
         name: form.name.trim(),
         role: form.role,
-        department: form.department.trim(),
+        department: form.department,
         managerId: form.managerId.trim() ? Number(form.managerId.trim()) : null
       });
       setForm({ name: "", email: "", password: "", role: "Employee", department: "", managerId: "" });
@@ -82,7 +92,18 @@ const EmployeeCreateDialog = ({ open, onClose }) => {
               <MenuItem value="Manager">Manager</MenuItem>
             </Select>
           </FormControl>
-          <TextField required label="Department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+          <FormControl fullWidth required>
+            <InputLabel>Department</InputLabel>
+            <Select
+              label="Department"
+              value={form.department}
+              onChange={(e) => setForm({ ...form, department: e.target.value })}
+            >
+              {DEPARTMENTS.map((dept) => (
+                <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField label="Manager Id" value={form.managerId} onChange={(e) => setForm({ ...form, managerId: e.target.value })} />
         </Stack>
       </DialogContent>
