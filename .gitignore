@@ -19,6 +19,7 @@ logs/
 
 # ASP.NET local config/secrets
 **/appsettings.Development.json
+**/appsettings.json
 **/secrets.json
 
 # EF / tooling caches

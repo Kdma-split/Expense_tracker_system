@@ -12,6 +12,7 @@ import {
   Typography
 } from "@mui/material";
 import { api } from "../api/client";
+import { getDocumentsForDraft, saveDocuments, serializeFiles } from "../utils/documentStore";
 
 const initialState = {
   subject: "",
@@ -24,6 +25,7 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
   const [form, setForm] = useState(initialState);
   const [saving, setSaving] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [uploadToastOpen, setUploadToastOpen] = useState(false);
 
   useEffect(() => {
@@ -38,17 +40,27 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
       } else {
         setForm(initialState);
       }
-      setUploadedFiles([]);
+      const existingDocs = getDocumentsForDraft(draftId, initialData);
+      setUploadedDocuments(existingDocs);
+      setUploadedFiles(
+        existingDocs.map((doc) => ({
+          name: doc.name,
+          size: doc.size,
+          type: doc.type
+        }))
+      );
       setUploadToastOpen(false);
     }
-  }, [open, initialData]);
+  }, [open, initialData, draftId]);
 
   const change = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  const onUploadDocuments = (event) => {
+  const onUploadDocuments = async (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
+    const serialized = await serializeFiles(files);
     setUploadedFiles(files);
+    setUploadedDocuments(serialized);
     setUploadToastOpen(true);
     // Allow re-selecting the same file(s).
     event.target.value = "";
@@ -64,14 +76,22 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
         dateOfExpense: new Date(`${form.dateOfExpense}T00:00:00`).toISOString()
       };
 
-      if (draftId) {
-        await api.put(`/drafts/${draftId}`, payload);
-      } else {
-        await api.post("/drafts", payload);
+      const response = draftId
+        ? await api.put(`/drafts/${draftId}`, payload)
+        : await api.post("/drafts", payload);
+      const persistedDraftId = draftId ?? response?.data?.id;
+      if (uploadedDocuments.length) {
+        saveDocuments({
+          draftId: persistedDraftId,
+          requestLike: payload,
+          documents: uploadedDocuments
+        });
       }
       onSaved?.();
       onClose();
       setForm(initialState);
+      setUploadedFiles([]);
+      setUploadedDocuments([]);
     } finally {
       setSaving(false);
     }
