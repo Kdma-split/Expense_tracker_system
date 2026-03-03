@@ -37,6 +37,70 @@ const defaultFilters = {
   highAmountOnly: false
 };
 
+const pickVariant = (variants, seed) => variants[Math.abs(seed) % variants.length];
+
+const buildAiInsights = ({ filtered, totals, byCategory, byStatus, trend, styleSeed = 0 }) => {
+  if (!filtered.length) {
+    return [
+      "No requests match the current filters, so there is not enough data for summarization.",
+      "Try widening the date range or clearing employee/status filters to generate insights."
+    ];
+  }
+
+  const submittedCount = byStatus.find((x) => x.name === "Submitted")?.value || 0;
+  const paidCount = byStatus.find((x) => x.name === "Paid")?.value || 0;
+  const topCategory = [...byCategory].sort((a, b) => b.amount - a.amount)[0];
+  const trendPoints = [...trend].sort((a, b) => a.date.localeCompare(b.date));
+  const firstTrend = trendPoints[0];
+  const lastTrend = trendPoints[trendPoints.length - 1];
+  const trendDelta = firstTrend ? lastTrend.amount - firstTrend.amount : 0;
+  const trendDirection = trendDelta >= 0 ? "upward" : "downward";
+  const paidRate = totals.count ? Math.round((paidCount / totals.count) * 100) : 0;
+  const seed = totals.count + Math.round(totals.avg) + submittedCount + paidCount + styleSeed;
+
+  const summaryLine = pickVariant(
+    [
+      `${totals.count} requests are in scope, with ${totals.totalAmount.toFixed(2)} total spend and an average claim of ${totals.avg.toFixed(2)}.`,
+      `Filtered activity includes ${totals.count} requests totaling ${totals.totalAmount.toFixed(2)}, at ${totals.avg.toFixed(2)} per request on average.`,
+      `You are currently tracking ${totals.count} requests worth ${totals.totalAmount.toFixed(2)} in total, with a ${totals.avg.toFixed(2)} average claim.`
+    ],
+    seed
+  );
+
+  const categoryLine = topCategory
+    ? pickVariant(
+        [
+          `${topCategory.name} currently leads category spend at ${topCategory.amount.toFixed(2)}.`,
+          `Highest category allocation is in ${topCategory.name}, contributing ${topCategory.amount.toFixed(2)}.`,
+          `${topCategory.name} is the primary cost driver in this view with ${topCategory.amount.toFixed(2)}.`
+        ],
+        seed + 1
+      )
+    : "Category distribution is currently too sparse to identify a clear leader.";
+
+  const workflowLine = pickVariant(
+    [
+      `${submittedCount} requests are waiting in submitted status, with a paid conversion rate of ${paidRate}%.`,
+      `Current workflow shows ${submittedCount} pending submissions, while ${paidRate}% of filtered requests are already paid.`,
+      `Queue health: ${submittedCount} submissions are pending and paid completion is tracking at ${paidRate}%.`
+    ],
+    seed + 2
+  );
+
+  const trendLine = firstTrend && lastTrend
+    ? pickVariant(
+        [
+          `Daily claim value moved ${trendDirection} by ${Math.abs(trendDelta).toFixed(2)} between ${firstTrend.date} and ${lastTrend.date}.`,
+          `From ${firstTrend.date} to ${lastTrend.date}, daily spend shifted ${trendDirection} by ${Math.abs(trendDelta).toFixed(2)}.`,
+          `Comparing ${firstTrend.date} with ${lastTrend.date}, daily expense volume changed ${trendDirection} by ${Math.abs(trendDelta).toFixed(2)}.`
+        ],
+        seed + 3
+      )
+    : "Trend signal is limited because there is only one day of data in the filtered view.";
+
+  return [summaryLine, categoryLine, workflowLine, trendLine];
+};
+
 const AdminAnalyticsPage = () => {
   const { data: requestData } = useRequestsQuery({ pageNumber: 1, pageSize: 500 });
   const { data: employees = [] } = useEmployeesQuery(true);
@@ -53,6 +117,8 @@ const AdminAnalyticsPage = () => {
   const [filters, setFilters] = useState(defaultFilters);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [showPulseBrief, setShowPulseBrief] = useState(false);
+  const [briefRunId, setBriefRunId] = useState(0);
 
   const employeeIdFromFilter = useMemo(() => {
     if (!filters.employee) return null;
@@ -122,6 +188,11 @@ const AdminAnalyticsPage = () => {
     const avg = filtered.length ? totalAmount / filtered.length : 0;
     return { totalAmount, pendingCount, avg, count: filtered.length };
   }, [filtered]);
+
+  const aiInsights = useMemo(
+    () => buildAiInsights({ filtered, totals, byCategory, byStatus, trend, styleSeed: briefRunId }),
+    [filtered, totals, byCategory, byStatus, trend, briefRunId]
+  );
 
   const quickApply = (patch) => {
     const next = { ...filters, ...patch };
@@ -277,6 +348,126 @@ const AdminAnalyticsPage = () => {
 
           {activeTab === "overview" ? (
             <Stack spacing={2}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} justifyContent="space-between">
+                <Button
+                  variant="contained"
+                  onClick={() => {
+                    setBriefRunId((prev) => prev + 1);
+                    setShowPulseBrief(true);
+                  }}
+                  sx={{
+                    alignSelf: "flex-start",
+                    fontWeight: 700,
+                    borderRadius: 999,
+                    px: 2,
+                    textTransform: "none",
+                    boxShadow: "none"
+                  }}
+                >
+                  Reveal Insights
+                </Button>
+                {showPulseBrief ? (
+                  <Button variant="text" onClick={() => setShowPulseBrief(false)} sx={{ alignSelf: "flex-start" }}>
+                    Hide
+                  </Button>
+                ) : null}
+              </Stack>
+
+              {showPulseBrief ? (
+                <Card
+                  variant="outlined"
+                  sx={{
+                    borderRadius: 2.5,
+                    overflow: "hidden",
+                    borderColor: "rgba(30,64,175,0.22)",
+                    boxShadow: "0 6px 20px rgba(15,23,42,0.08)",
+                    position: "relative",
+                    transition: "transform 180ms ease, box-shadow 220ms ease",
+                    "&::before": {
+                      content: "\"\"",
+                      position: "absolute",
+                      inset: 0,
+                      pointerEvents: "none",
+                      background: "linear-gradient(320deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.22) 40%, rgba(255,255,255,0.54) 100%)",
+                      transition: "background 300ms ease"
+                    },
+                    "&::after": {
+                      content: "\"\"",
+                      position: "absolute",
+                      top: -120,
+                      left: -220,
+                      width: 180,
+                      height: "170%",
+                      pointerEvents: "none",
+                      background: "linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.58) 48%, rgba(255,255,255,0) 100%)",
+                      transform: "rotate(14deg)",
+                      opacity: 0,
+                      transition: "left 520ms ease, opacity 220ms ease"
+                    },
+                    "&:hover": {
+                      transform: "translateY(-1px)",
+                      boxShadow: "0 10px 28px rgba(15,23,42,0.12)"
+                    },
+                    "&:hover::before": {
+                      background: "linear-gradient(140deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.18) 36%, rgba(255,255,255,0.52) 100%)"
+                    },
+                    "&:hover::after": {
+                      left: "110%",
+                      opacity: 1
+                    }
+                  }}
+                >
+                  <Box
+                    sx={{
+                      px: 2,
+                      py: 1.25,
+                      color: "text.primary",
+                      backgroundColor: "#f1f5f9",
+                      borderBottom: "1px solid",
+                      borderColor: "rgba(15,23,42,0.14)"
+                    }}
+                  >
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Stack spacing={0.3}>
+                        <Typography variant="overline" sx={{ letterSpacing: 1.1, color: "text.secondary", fontWeight: 700 }}>
+                          Analytics
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a" }}>
+                          AI Insights
+                        </Typography>
+                      </Stack>
+                      <Chip size="small" label="Insight Ready" sx={{ fontWeight: 700, color: "#0f172a", bgcolor: "#e2e8f0" }} />
+                    </Stack>
+                  </Box>
+                  <CardContent sx={{ p: 0 }}>
+                    <Stack divider={<Divider sx={{ borderColor: "rgba(15,23,42,0.12)" }} />}>
+                      {aiInsights.map((line, index) => (
+                        <Stack key={line} direction="row" spacing={1.5} sx={{ px: 2, py: 1.5 }} alignItems="flex-start">
+                          <Box
+                            sx={{
+                              minWidth: 26,
+                              height: 26,
+                              borderRadius: "50%",
+                              bgcolor: "#dbeafe",
+                              color: "#1e3a8a",
+                              display: "grid",
+                              placeItems: "center",
+                              fontSize: 12,
+                              fontWeight: 700
+                            }}
+                          >
+                            {index + 1}
+                          </Box>
+                          <Typography variant="body1" sx={{ lineHeight: 1.65, color: "#0f172a", fontWeight: 500 }}>
+                            {line}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              ) : null}
+
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Card><CardContent><Typography variant="caption">Total Amount</Typography><Typography variant="h6">{totals.totalAmount.toFixed(2)}</Typography></CardContent></Card>
