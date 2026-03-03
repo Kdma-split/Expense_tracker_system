@@ -53,7 +53,7 @@ const LoginPage = () => {
       <Card className="login-card">
         <CardContent>
           <Typography className="login-title" variant="h4" gutterBottom sx={{ textAlign: "center" }}>
-            ExpenseFlow
+            Expense Tracker
           </Typography>
           <Typography className="login-subtitle" variant="body2" sx={{ mb: 3, textAlign: "center" }}>
             Track claims, approvals, and payouts from one place.

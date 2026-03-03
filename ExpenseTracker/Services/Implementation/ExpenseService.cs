@@ -210,7 +210,7 @@ public class ExpenseService : IExpenseService
 
     public async Task<PagedResultDto<RequestDto>> GetRequestsAsync(int userId, string role, RequestFilterDto filter)
     {
-        var query = _db.Requests.AsNoTracking().Include(r => r.Category).AsQueryable();
+var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.StatusHistory).AsQueryable();
         if (role == "Employee")
         {
             query = query.Where(r => r.EmployeeId == userId);
@@ -231,7 +231,7 @@ public class ExpenseService : IExpenseService
     {
         var teamIds = await GetTeamMemberIdsAsync(managerId);
         var effectiveFilter = filter with { Status = RequestStatus.Submitted };
-        var query = _db.Requests.AsNoTracking().Include(r => r.Category)
+var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.StatusHistory)
             .Where(r => teamIds.Contains(r.EmployeeId));
 
         query = ApplyRequestFilter(query, effectiveFilter);
@@ -242,7 +242,7 @@ public class ExpenseService : IExpenseService
 
     public async Task<RequestDto?> GetRequestByIdAsync(int id, int userId, string role)
     {
-        var query = _db.Requests.AsNoTracking().Include(r => r.Category).Where(r => r.Id == id);
+var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.StatusHistory).Where(r => r.Id == id);
         if (role == "Employee")
         {
             query = query.Where(r => r.EmployeeId == userId);
@@ -662,11 +662,16 @@ public class ExpenseService : IExpenseService
         );
     }
 
-    private static Expression<Func<Request, RequestDto>> ToRequestDto()
+private static Expression<Func<Request, RequestDto>> ToRequestDto()
     {
         return r => new RequestDto(
             r.Id, r.EmployeeId, r.Subject, r.Description, r.Amount, r.CategoryId,
-            r.Category != null ? r.Category.Name : null, r.DateOfExpense, r.CreatedAt, r.Status
+            r.Category != null ? r.Category.Name : null, r.DateOfExpense, r.CreatedAt, r.Status,
+            r.StatusHistory
+                .Where(h => h.ToStatus == RequestStatus.Approved || h.ToStatus == RequestStatus.Rejected || h.ToStatus == RequestStatus.Paid)
+                .OrderByDescending(h => h.ChangedAt)
+                .Select(h => h.Remarks)
+                .FirstOrDefault()
         );
     }
 }

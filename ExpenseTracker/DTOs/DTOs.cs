@@ -51,7 +51,8 @@ public record RequestDto(
     string? CategoryName,
     DateTime DateOfExpense,
     DateTime CreatedAt,
-    RequestStatus Status
+    RequestStatus Status,
+    string? Remarks = null
 );
 
 public record RequestFilterDto(

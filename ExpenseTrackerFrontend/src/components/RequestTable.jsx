@@ -11,7 +11,8 @@ const RequestTable = ({ rows, actions }) => (
         <TableCell>Category</TableCell>
         <TableCell>Amount</TableCell>
         <TableCell>Date</TableCell>
-        <TableCell>Status</TableCell>
+<TableCell>Status</TableCell>
+        <TableCell>Comments</TableCell>
         {actions ? <TableCell>Actions</TableCell> : null}
       </TableRow>
     </TableHead>
@@ -27,6 +28,7 @@ const RequestTable = ({ rows, actions }) => (
           <TableCell>
             <Chip label={STATUS_LABEL[row.status]} size="small" color={STATUS_COLOR[row.status]} />
           </TableCell>
+          <TableCell>{row.remarks || "-"}</TableCell>
           {actions ? <TableCell>{actions(row)}</TableCell> : null}
         </TableRow>
       ))}
