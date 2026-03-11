@@ -1,9 +1,18 @@
-# TODO: Display Comments in Approved/Rejected Sections
+# TODO - Manager Sidebar Navigation Update
 
-## Backend Changes
-- [x] 1. Modify RequestDto in DTOs.cs to add Remarks field
-- [x] 2. Update ExpenseService to populate remarks from StatusHistory for Approved/Rejected requests
+## Task
+Modify the sidebar in the Manager section so that:
+1. Sidebar shows only "My" and "Team" sections
+2. Clicking on "My" displays its subsections in the navbar
+3. Clicking on those subsections navigates to respective pages
+4. Same behavior for "Team"
 
-## Frontend Changes
-- [x] 3. Update RequestTable component to display Comments column
-- [x] 4. Verify all pages display comments correctly (completed automatically as all pages use RequestTable)
+## Steps Completed
+- [x] 1. Analyze the codebase structure
+- [x] 2. Modify AppLayout.jsx to implement nested navigation for Manager role
+
+## Implementation Details
+- Restructure menuByRole for Manager to have nested categories
+- Add state to track active section in navbar
+- Render sub-items in the AppBar when a parent is clicked
+
