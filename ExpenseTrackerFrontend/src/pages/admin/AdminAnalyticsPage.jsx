@@ -158,6 +158,24 @@ const AdminAnalyticsPage = () => {
     if (page > maxPage) setPage(maxPage);
   }, [filtered.length, rowsPerPage, page]);
 
+  useEffect(() => {
+    if (activeTab !== "requests") return;
+    const previous = document.body.style.overflowY;
+    document.body.style.overflowY = "hidden";
+    return () => {
+      document.body.style.overflowY = previous;
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "overview") return;
+    const previous = document.body.style.overflowY;
+    document.body.style.overflowY = "hidden";
+    return () => {
+      document.body.style.overflowY = previous;
+    };
+  }, [activeTab]);
+
   const pagedRows = useMemo(() => {
     const start = page * rowsPerPage;
     return filtered.slice(start, start + rowsPerPage);
@@ -294,7 +312,7 @@ const AdminAnalyticsPage = () => {
   return (
     <Grid container spacing={1.5} sx={{ overflowX: "hidden" }}>
       <Grid size={{ xs: 12 }}>
-        <Stack spacing={1.5}>
+        <Stack spacing={1}>
           <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }}>
             <Box>
               <Typography variant="h5">Analytics</Typography>
@@ -348,36 +366,51 @@ const AdminAnalyticsPage = () => {
           </Tabs>
 
           {activeTab === "overview" ? (
-            <Stack spacing={1.5}>
-              <Grid container spacing={1.5}>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Card><CardContent><Typography variant="caption">Total Amount</Typography><Typography variant="h6">{totals.totalAmount.toFixed(2)}</Typography></CardContent></Card>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Card><CardContent><Typography variant="caption">Request Count</Typography><Typography variant="h6">{totals.count}</Typography></CardContent></Card>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Card><CardContent><Typography variant="caption">Average Claim</Typography><Typography variant="h6">{totals.avg.toFixed(2)}</Typography></CardContent></Card>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Card><CardContent><Typography variant="caption">Pending Count</Typography><Typography variant="h6">{totals.pendingCount}</Typography></CardContent></Card>
+            <Grid container spacing={2} sx={{ minHeight: "calc(100vh - 240px)" }}>
+              <Grid size={{ xs: 12 }}>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, md: 8 }}>
+                    <StatusPieChartCard data={byStatus} title="Status" height={210} outerRadius={90} />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Card sx={{ height: "100%" }}>
+                      <CardContent sx={{ py: 1.1 }}>
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.6 }}>
+                          Summary
+                        </Typography>
+                        <Stack spacing={0.6}>
+                          <Stack direction="row" justifyContent="space-between" alignItems="baseline">
+                            <Typography variant="caption" color="text.secondary">Total Amount</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{totals.totalAmount.toFixed(2)}</Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between" alignItems="baseline">
+                            <Typography variant="caption" color="text.secondary">Requests</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{totals.count}</Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between" alignItems="baseline">
+                            <Typography variant="caption" color="text.secondary">Avg Claim</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{totals.avg.toFixed(2)}</Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between" alignItems="baseline">
+                            <Typography variant="caption" color="text.secondary">Pending</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{totals.pendingCount}</Typography>
+                          </Stack>
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TrendLineChartCard data={trend} height={200} />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <CategoryBarChartCard data={byCategory} height={200} />
+                  </Grid>
                 </Grid>
               </Grid>
-
-              <StatusPieChartCard data={byStatus} title="Status Distribution" height={300} outerRadius={105} />
-
-              <Grid container spacing={1.5}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <CategoryBarChartCard data={byCategory} height={220} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TrendLineChartCard data={trend} height={220} />
-                </Grid>
-              </Grid>
-            </Stack>
+            </Grid>
           ) : (
-            <Card>
-              <CardContent>
+            <Card sx={{ height: "calc(100vh - 220px)" }}>
+              <CardContent sx={{ height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
                 <Typography variant="h6">Filtered Requests</Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
                   Sort: {filters.sortBy} ({filters.sortOrder})
@@ -398,17 +431,20 @@ const AdminAnalyticsPage = () => {
                   </Card>
                 ) : (
                   <>
-                    <RequestTable
-                      rows={pagedRows}
-                      actions={(row) =>
-                        row.status === REQUEST_STATUS.Paid ? (
-                          <Button size="small" variant="outlined" onClick={() => setSelectedRequest(row)}>
-                            Set Category
-                          </Button>
-                        ) : null
-                      }
-                    />
+                    <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pr: 0.5 }}>
+                      <RequestTable
+                        rows={pagedRows}
+                        actions={(row) =>
+                          row.status === REQUEST_STATUS.Paid ? (
+                            <Button size="small" variant="outlined" onClick={() => setSelectedRequest(row)}>
+                              Set Category
+                            </Button>
+                          ) : null
+                        }
+                      />
+                    </Box>
                     <TablePagination
+                      sx={{ mt: 1 }}
                       component="div"
                       count={filtered.length}
                       page={page}
@@ -455,67 +491,38 @@ const AdminAnalyticsPage = () => {
 
       <Dialog open={insightsOpen} onClose={() => setInsightsOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle sx={{ pb: 0.5 }}>
-          <Typography variant="overline" sx={{ letterSpacing: 1.1, color: "text.secondary", fontWeight: 700 }}>
+          <Typography variant="overline" sx={{ letterSpacing: 1.1, color: "text.secondary", fontWeight: 600 }}>
             Analytics
           </Typography>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
             AI Insights
           </Typography>
         </DialogTitle>
         <DialogContent dividers>
-          <Card
-            variant="outlined"
-            sx={{
-              borderRadius: 2.5,
-              overflow: "hidden",
-              borderColor: "rgba(30,64,175,0.22)",
-              boxShadow: "0 6px 20px rgba(15,23,42,0.08)"
-            }}
-          >
-            <Box
-              sx={{
-                px: 2,
-                py: 1.25,
-                color: "text.primary",
-                backgroundColor: "#f1f5f9",
-                borderBottom: "1px solid",
-                borderColor: "rgba(15,23,42,0.14)"
-              }}
-            >
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  Insight Summary
+          <Stack spacing={1.25}>
+            {aiInsights.map((line, index) => (
+              <Stack key={line} direction="row" spacing={1.25} alignItems="flex-start">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    minWidth: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    bgcolor: "action.selected",
+                    color: "text.primary",
+                    display: "grid",
+                    placeItems: "center",
+                    fontWeight: 600
+                  }}
+                >
+                  {index + 1}
                 </Typography>
-                <Chip size="small" label="Insight Ready" sx={{ fontWeight: 700, color: "#0f172a", bgcolor: "#e2e8f0" }} />
+                <Typography variant="body2" sx={{ lineHeight: 1.6, color: "text.primary" }}>
+                  {line}
+                </Typography>
               </Stack>
-            </Box>
-            <CardContent sx={{ p: 0 }}>
-              <Stack divider={<Divider sx={{ borderColor: "rgba(15,23,42,0.12)" }} />}>
-                {aiInsights.map((line, index) => (
-                  <Stack key={line} direction="row" spacing={1.5} sx={{ px: 2, py: 1.5 }} alignItems="flex-start">
-                    <Box
-                      sx={{
-                        minWidth: 26,
-                        height: 26,
-                        borderRadius: "50%",
-                        bgcolor: "#dbeafe",
-                        color: "#1e3a8a",
-                        display: "grid",
-                        placeItems: "center",
-                        fontSize: 12,
-                        fontWeight: 700
-                      }}
-                    >
-                      {index + 1}
-                    </Box>
-                    <Typography variant="body1" sx={{ lineHeight: 1.65, color: "#0f172a", fontWeight: 500 }}>
-                      {line}
-                    </Typography>
-                  </Stack>
-                ))}
-              </Stack>
-            </CardContent>
-          </Card>
+            ))}
+          </Stack>
         </DialogContent>
       </Dialog>
 
