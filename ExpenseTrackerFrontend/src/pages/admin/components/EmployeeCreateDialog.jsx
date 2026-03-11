@@ -44,7 +44,7 @@ const EmployeeCreateDialog = ({ open, onClose }) => {
     if (!/\S+@\S+\.\S+/.test(form.email.trim())) return "Email format is invalid";
     if (!form.password || form.password.length < 6) return "Password must be at least 6 characters";
     if (!form.department) return "Department is required";
-    if (!(form.role === "Employee" || form.role === "Manager")) return "Role must be Employee or Manager";
+    if (!(form.role === "Employee" || form.role === "Manager" || form.role === "Director")) return "Role must be Employee, Manager, or Director";
     if (form.managerId.trim()) {
       const managerId = Number(form.managerId.trim());
       if (!Number.isInteger(managerId) || managerId <= 0) return "Manager Id must be a positive integer";
@@ -90,6 +90,7 @@ const EmployeeCreateDialog = ({ open, onClose }) => {
             <Select label="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
               <MenuItem value="Employee">Employee</MenuItem>
               <MenuItem value="Manager">Manager</MenuItem>
+              <MenuItem value="Director">Director</MenuItem>
             </Select>
           </FormControl>
           <FormControl fullWidth required>

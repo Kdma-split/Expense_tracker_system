@@ -16,6 +16,7 @@ import { useEffect } from "react";
 const routeByRole = {
   Employee: "/employee/drafts",
   Manager: "/manager/pending",
+  Director: "/manager/pending",
   Finance: "/finance/pending",
   Admin: "/admin/employees"
 };

@@ -7,7 +7,7 @@ public class Employee : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
     
-    public string Role { get; set; } = "Employee"; // Employee, Manager, Admin, Finance
+    public string Role { get; set; } = "Employee"; // Employee, Manager, Director, Admin, Finance
 
     public bool IsActive { get; set; } = true;
     

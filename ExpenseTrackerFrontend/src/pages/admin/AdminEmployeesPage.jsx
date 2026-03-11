@@ -19,7 +19,7 @@ const AdminEmployeesPage = () => {
     () =>
       employees.filter((e) => {
         const role = String(e.role || "").toLowerCase();
-        return role === "employee" || role === "manager";
+        return role === "employee" || role === "manager" || role === "director";
       }),
     [employees]
   );

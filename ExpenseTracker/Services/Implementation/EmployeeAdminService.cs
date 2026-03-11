@@ -139,9 +139,9 @@ public class EmployeeAdminService : IEmployeeAdminService
     private static void ValidateAdminManagedRole(string role)
     {
         var normalized = role.Trim();
-        if (normalized is not ("Employee" or "Manager"))
+        if (normalized is not ("Employee" or "Manager" or "Director"))
         {
-            throw new InvalidOperationException("Admin can only manage Employee/Manager roles");
+            throw new InvalidOperationException("Admin can only manage Employee/Manager/Director roles");
         }
     }
 
@@ -153,10 +153,10 @@ public class EmployeeAdminService : IEmployeeAdminService
         }
 
         var validManager = await _db.Employees
-            .AnyAsync(e => e.Id == managerId.Value && e.Role == "Manager" && e.IsActive);
+            .AnyAsync(e => e.Id == managerId.Value && (e.Role == "Manager" || e.Role == "Director") && e.IsActive);
         if (!validManager)
         {
-            throw new InvalidOperationException("ManagerId must reference an active manager");
+            throw new InvalidOperationException("ManagerId must reference an active manager or director");
         }
     }
 }

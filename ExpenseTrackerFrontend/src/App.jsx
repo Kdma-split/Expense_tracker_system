@@ -28,14 +28,14 @@ const App = () => (
     >
       <Route index element={<Navigate to="/login" replace />} />
 
-      <Route path="employee/drafts" element={<ProtectedRoute roles={["Employee"]}><EmployeeDraftsPage /></ProtectedRoute>} />
-      <Route path="employee/submitted" element={<ProtectedRoute roles={["Employee"]}><EmployeeSubmittedPage /></ProtectedRoute>} />
-      <Route path="employee/approved" element={<ProtectedRoute roles={["Employee"]}><EmployeeApprovedPage /></ProtectedRoute>} />
-      <Route path="employee/rejected" element={<ProtectedRoute roles={["Employee"]}><EmployeeRejectedPage /></ProtectedRoute>} />
+      <Route path="employee/drafts" element={<ProtectedRoute roles={["Employee", "Manager", "Director"]}><EmployeeDraftsPage /></ProtectedRoute>} />
+      <Route path="employee/submitted" element={<ProtectedRoute roles={["Employee", "Manager", "Director"]}><EmployeeSubmittedPage /></ProtectedRoute>} />
+      <Route path="employee/approved" element={<ProtectedRoute roles={["Employee", "Manager", "Director"]}><EmployeeApprovedPage /></ProtectedRoute>} />
+      <Route path="employee/rejected" element={<ProtectedRoute roles={["Employee", "Manager", "Director"]}><EmployeeRejectedPage /></ProtectedRoute>} />
 
-      <Route path="manager/pending" element={<ProtectedRoute roles={["Manager"]}><ManagerPendingPage /></ProtectedRoute>} />
-      <Route path="manager/approved" element={<ProtectedRoute roles={["Manager"]}><ManagerApprovedPage /></ProtectedRoute>} />
-      <Route path="manager/rejected" element={<ProtectedRoute roles={["Manager"]}><ManagerRejectedPage /></ProtectedRoute>} />
+      <Route path="manager/pending" element={<ProtectedRoute roles={["Manager", "Director"]}><ManagerPendingPage /></ProtectedRoute>} />
+      <Route path="manager/approved" element={<ProtectedRoute roles={["Manager", "Director"]}><ManagerApprovedPage /></ProtectedRoute>} />
+      <Route path="manager/rejected" element={<ProtectedRoute roles={["Manager", "Director"]}><ManagerRejectedPage /></ProtectedRoute>} />
 
       <Route path="finance/pending" element={<ProtectedRoute roles={["Finance"]}><FinancePendingPage /></ProtectedRoute>} />
       <Route path="finance/approved" element={<ProtectedRoute roles={["Finance"]}><FinanceApprovedPage /></ProtectedRoute>} />

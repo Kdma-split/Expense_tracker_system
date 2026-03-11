@@ -149,6 +149,10 @@ public class ExpenseService : IExpenseService
 
     public async Task<RequestDto> SubmitDraftToRequestAsync(int draftId, int employeeId)
     {
+        var employee = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == employeeId)
+            ?? throw new InvalidOperationException("Employee not found");
+        var autoApprove = employee.ManagerId == null;
+
         var draft = await _db.Drafts.FirstOrDefaultAsync(d => d.Id == draftId && d.EmployeeId == employeeId)
             ?? throw new InvalidOperationException("Draft not found");
 
@@ -176,7 +180,7 @@ public class ExpenseService : IExpenseService
             CategoryId = draft.CategoryId,
             DateOfExpense = draft.DateOfExpense,
             CreatedAt = DateTime.UtcNow,
-            Status = RequestStatus.Submitted,
+            Status = autoApprove ? RequestStatus.Approved : RequestStatus.Submitted,
             CreatedBy = employeeId.ToString(),
             CreatedDate = DateTime.UtcNow
         };
@@ -195,6 +199,35 @@ public class ExpenseService : IExpenseService
             CreatedBy = employeeId.ToString(),
             CreatedDate = DateTime.UtcNow
         });
+
+        if (autoApprove)
+        {
+            var categoryId = request.CategoryId ?? await GetOrCreateUncategorizedCategoryIdAsync();
+            request.UpdatedBy = "System";
+            request.UpdatedDate = DateTime.UtcNow;
+
+            _db.ApprovedItems.Add(new Approved
+            {
+                RequestId = request.Id,
+                TotalAmount = request.Amount,
+                CategoryId = categoryId,
+                Status = ApprovedStatus.Pending,
+                CreatedBy = "System",
+                CreatedDate = DateTime.UtcNow
+            });
+
+            _db.StatusHistory.Add(new StatusHistory
+            {
+                RequestId = request.Id,
+                FromStatus = RequestStatus.Submitted,
+                ToStatus = RequestStatus.Approved,
+                ChangedBy = "System",
+                Remarks = "Auto-approved (no manager assigned)",
+                ChangedAt = DateTime.UtcNow,
+                CreatedBy = "System",
+                CreatedDate = DateTime.UtcNow
+            });
+        }
 
         _db.Drafts.Remove(draft);
         await _db.SaveChangesAsync();
@@ -215,9 +248,10 @@ var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.
         {
             query = query.Where(r => r.EmployeeId == userId);
         }
-        else if (role == "Manager")
+        else if (role is "Manager" or "Director")
         {
             var teamIds = await GetTeamMemberIdsAsync(userId);
+            teamIds.Add(userId);
             query = query.Where(r => teamIds.Contains(r.EmployeeId));
         }
 
@@ -247,9 +281,10 @@ var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.
         {
             query = query.Where(r => r.EmployeeId == userId);
         }
-        else if (role == "Manager")
+        else if (role is "Manager" or "Director")
         {
             var teamIds = await GetTeamMemberIdsAsync(userId);
+            teamIds.Add(userId);
             query = query.Where(r => teamIds.Contains(r.EmployeeId));
         }
 

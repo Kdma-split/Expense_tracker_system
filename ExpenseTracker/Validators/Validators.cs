@@ -108,8 +108,8 @@ public class CreateEmployeeByAdminValidator : AbstractValidator<CreateEmployeeBy
         RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Department).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.Role).NotEmpty().Must(r => r is "Employee" or "Manager")
-            .WithMessage("Role must be Employee or Manager");
+        RuleFor(x => x.Role).NotEmpty().Must(r => r is "Employee" or "Manager" or "Director")
+            .WithMessage("Role must be Employee, Manager, or Director");
     }
 }
 
@@ -119,8 +119,8 @@ public class UpdateEmployeeByAdminValidator : AbstractValidator<UpdateEmployeeBy
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Department).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.Role).NotEmpty().Must(r => r is "Employee" or "Manager")
-            .WithMessage("Role must be Employee or Manager");
+        RuleFor(x => x.Role).NotEmpty().Must(r => r is "Employee" or "Manager" or "Director")
+            .WithMessage("Role must be Employee, Manager, or Director");
         RuleFor(x => x.Password!).MinimumLength(6).When(x => !string.IsNullOrWhiteSpace(x.Password));
     }
 }

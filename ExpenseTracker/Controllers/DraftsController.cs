@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExpenseTracker.Controllers;
 
 [Route("api/drafts")]
-[Authorize(Roles = "Employee")]
+[Authorize(Roles = "Employee,Manager,Director")]
 public class DraftsController : ApiControllerBase
 {
     private readonly IExpenseService _expenseService;

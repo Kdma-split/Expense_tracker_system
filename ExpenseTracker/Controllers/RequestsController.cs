@@ -16,21 +16,21 @@ public class RequestsController : ApiControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Employee,Manager,Finance,Admin")]
+    [Authorize(Roles = "Employee,Manager,Director,Finance,Admin")]
     public async Task<ActionResult<PagedResultDto<RequestDto>>> GetRequests([FromQuery] RequestFilterDto filter)
     {
         return Ok(await _expenseService.GetRequestsAsync(GetEmployeeId(), GetRole(), filter));
     }
 
     [HttpGet("team-pending")]
-    [Authorize(Roles = "Manager")]
+    [Authorize(Roles = "Manager,Director")]
     public async Task<ActionResult<PagedResultDto<RequestDto>>> GetTeamPending([FromQuery] RequestFilterDto filter)
     {
         return Ok(await _expenseService.GetTeamPendingRequestsAsync(GetEmployeeId(), filter));
     }
 
     [HttpGet("{id:int}")]
-    [Authorize(Roles = "Employee,Manager,Finance,Admin")]
+    [Authorize(Roles = "Employee,Manager,Director,Finance,Admin")]
     public async Task<ActionResult<RequestDto>> GetRequest(int id)
     {
         var request = await _expenseService.GetRequestByIdAsync(id, GetEmployeeId(), GetRole());
@@ -38,7 +38,7 @@ public class RequestsController : ApiControllerBase
     }
 
     [HttpGet("{id:int}/history")]
-    [Authorize(Roles = "Employee,Manager,Finance,Admin")]
+    [Authorize(Roles = "Employee,Manager,Director,Finance,Admin")]
     public async Task<ActionResult<IEnumerable<StatusHistoryDto>>> GetRequestHistory(int id)
     {
         try
@@ -52,7 +52,7 @@ public class RequestsController : ApiControllerBase
     }
 
     [HttpPost("resubmit")]
-    [Authorize(Roles = "Employee")]
+    [Authorize(Roles = "Employee,Manager,Director")]
     public async Task<ActionResult<RequestDto>> Resubmit([FromBody] ResubmitRequestDto dto)
     {
         try
@@ -66,7 +66,7 @@ public class RequestsController : ApiControllerBase
     }
 
     [HttpPost("approve")]
-    [Authorize(Roles = "Manager")]
+    [Authorize(Roles = "Manager,Director")]
     public async Task<ActionResult<ApprovedDto>> ApproveRequest([FromBody] ApproveRequestDto dto)
     {
         try
@@ -80,7 +80,7 @@ public class RequestsController : ApiControllerBase
     }
 
     [HttpPost("reject")]
-    [Authorize(Roles = "Manager")]
+    [Authorize(Roles = "Manager,Director")]
     public async Task<ActionResult<RejectedDto>> RejectRequest([FromBody] RejectRequestDto dto)
     {
         try

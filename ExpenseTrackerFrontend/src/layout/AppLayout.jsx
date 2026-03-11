@@ -25,9 +25,22 @@ const menuByRole = {
     { label: "Rejected Requests", path: "/employee/rejected" }
   ],
   Manager: [
-    { label: "Pending Requests", path: "/manager/pending" },
-    { label: "Approved Requests", path: "/manager/approved" },
-    { label: "Rejected Requests", path: "/manager/rejected" }
+    { label: "My Drafts", path: "/employee/drafts" },
+    { label: "My Submitted", path: "/employee/submitted" },
+    { label: "My Approved", path: "/employee/approved" },
+    { label: "My Rejected", path: "/employee/rejected" },
+    { label: "Team Pending", path: "/manager/pending" },
+    { label: "Team Approved", path: "/manager/approved" },
+    { label: "Team Rejected", path: "/manager/rejected" }
+  ],
+  Director: [
+    { label: "My Drafts", path: "/employee/drafts" },
+    { label: "My Submitted", path: "/employee/submitted" },
+    { label: "My Approved", path: "/employee/approved" },
+    { label: "My Rejected", path: "/employee/rejected" },
+    { label: "Team Pending", path: "/manager/pending" },
+    { label: "Team Approved", path: "/manager/approved" },
+    { label: "Team Rejected", path: "/manager/rejected" }
   ],
   Finance: [
     { label: "Pending Requests", path: "/finance/pending" },

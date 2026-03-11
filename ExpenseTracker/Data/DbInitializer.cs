@@ -31,7 +31,19 @@ public static class DbInitializer
 
         for (var i = 1; i <= 5; i++)
         {
-            managers.Add(AddEmployee(context, managerNames[i - 1], "Manager", i % 2 == 0 ? "Operations" : "Engineering", null, now));
+            int? managerId = null;
+            if (i > 1)
+            {
+                managerId = managers[0].Id;
+            }
+
+            managers.Add(AddEmployee(
+                context,
+                managerNames[i - 1],
+                i == 1 ? "Director" : "Manager",
+                i % 2 == 0 ? "Operations" : "Engineering",
+                managerId,
+                now));
         }
 
         var employees = new List<Employee>();
@@ -69,8 +81,9 @@ public static class DbInitializer
         }
 
         SeedProfiles(context, admin, finance, managers, employees, now);
-        SeedDrafts(context, employees, uncategorizedId, now);
-        SeedRequestsAndWorkflowData(context, employees, managers, finance, categoryPool, now);
+        var requesters = employees.Concat(managers).ToList();
+        SeedDrafts(context, requesters, uncategorizedId, now);
+        SeedRequestsAndWorkflowData(context, requesters, managers, finance, categoryPool, now);
 
         context.SaveChanges();
     }
@@ -191,7 +204,8 @@ public static class DbInitializer
         int uncategorizedId,
         DateTime now)
     {
-        for (var i = 0; i < 10; i++)
+        var count = Math.Min(10, employees.Count);
+        for (var i = 0; i < count; i++)
         {
             var employee = employees[i];
             context.Drafts.Add(new Draft
@@ -252,9 +266,17 @@ public static class DbInitializer
         var requestIndex = 0;
         foreach (var employee in employees.Take(18))
         {
+            var isTopManager = employee.ManagerId == null;
             var status = statuses[requestIndex % statuses.Length];
+            if (isTopManager)
+            {
+                status = requestIndex % 2 == 0 ? RequestStatus.Approved : RequestStatus.Paid;
+            }
+
             var managerId = employee.ManagerId ?? managers[0].Id;
-            var managerName = managers.FirstOrDefault(m => m.Id == managerId)?.Name ?? "Manager";
+            var managerName = isTopManager
+                ? "System"
+                : (managers.FirstOrDefault(m => m.Id == managerId)?.Name ?? "Manager");
             var categoryId = categoryPool[requestIndex % categoryPool.Count];
             var template = requestTemplates[requestIndex % requestTemplates.Length];
 
@@ -307,14 +329,14 @@ public static class DbInitializer
                     FromStatus = RequestStatus.Submitted,
                     ToStatus = RequestStatus.Approved,
                     ChangedBy = managerName,
-                    Remarks = "Approved by manager",
+                    Remarks = isTopManager ? "Auto-approved (no manager assigned)" : "Approved by manager",
                     ChangedAt = request.CreatedAt.AddHours(2),
                     CreatedBy = "System",
                     CreatedDate = request.CreatedAt.AddHours(2)
                 });
             }
 
-            if (status == RequestStatus.Rejected)
+            if (status == RequestStatus.Rejected && !isTopManager)
             {
                 context.RejectedItems.Add(new Rejected
                 {
