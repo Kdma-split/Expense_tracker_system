@@ -54,7 +54,8 @@ public record RequestDto(
     DateTime CreatedAt,
     RequestStatus Status,
     string? Remarks = null,
-    IReadOnlyCollection<RequestItemDto>? Items = null
+    IReadOnlyCollection<RequestItemDto>? Items = null,
+    FinanceStatusEnum? FinanceStatus = null
 );
 
 public record DraftItemDto(
@@ -97,6 +98,7 @@ public record RejectRequestDto(int RequestId, string Comment);
 public record ResubmitRequestDto(int RequestId);
 
 public record FinancePaymentDto(int RequestId, string? Notes);
+public record FinanceDecisionDto(int RequestId, string? Notes);
 public record UpdateRequestCategoryDto(int CategoryId, string? Remarks);
 
 public record FinanceStatusDto(

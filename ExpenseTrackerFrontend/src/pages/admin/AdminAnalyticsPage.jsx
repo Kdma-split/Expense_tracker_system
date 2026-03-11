@@ -5,15 +5,18 @@ import {
   Card,
   CardContent,
   Chip,
-  Collapse,
+  Drawer,
   Divider,
   Grid,
+  IconButton,
   Stack,
   Tab,
   TablePagination,
   Tabs,
+  Tooltip,
   Typography
 } from "@mui/material";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import RequestTable from "../../components/RequestTable";
 import { REQUEST_STATUS, STATUS_LABEL, STATUS_COLOR } from "../../components/constants";
 import { useEmployeesQuery } from "../../api/hooks/employees";
@@ -111,7 +114,7 @@ const AdminAnalyticsPage = () => {
 
   const requests = requestData?.items || [];
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [draftFilters, setDraftFilters] = useState(defaultFilters);
   const [filters, setFilters] = useState(defaultFilters);
@@ -286,40 +289,23 @@ const AdminAnalyticsPage = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid size={{ xs: 12, md: filtersOpen ? 3 : 0 }}>
-        <Stack spacing={1.5}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">Filters</Typography>
-            <Button size="small" onClick={() => setFiltersOpen((prev) => !prev)}>
-              {filtersOpen ? "Hide" : "Show"}
-            </Button>
-          </Stack>
-          <Collapse in={filtersOpen}>
-            <Stack spacing={1}>
-              <AnalyticsFilterPanel filters={draftFilters} setFilters={setDraftFilters} statusLabelMap={STATUS_LABEL} />
-              <Stack direction="row" spacing={1}>
-                <Button variant="contained" onClick={applyFilters} fullWidth>
-                  Apply
-                </Button>
-                <Button variant="outlined" onClick={resetFilters} fullWidth>
-                  Reset
-                </Button>
-              </Stack>
-            </Stack>
-          </Collapse>
-        </Stack>
-      </Grid>
-
-      <Grid size={{ xs: 12, md: filtersOpen ? 9 : 12 }}>
+      <Grid size={{ xs: 12 }}>
         <Stack spacing={2}>
           <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }}>
             <Box>
               <Typography variant="h5">Analytics</Typography>
               <Typography variant="body2">{filtered.length} results</Typography>
             </Box>
-            <Button variant="contained" onClick={exportFilteredToCsv}>
-              Export CSV
-            </Button>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Tooltip title="Filters">
+                <IconButton onClick={() => setFiltersOpen(true)} color="primary">
+                  <FilterListIcon />
+                </IconButton>
+              </Tooltip>
+              <Button variant="contained" onClick={exportFilteredToCsv}>
+                Export CSV
+              </Button>
+            </Stack>
           </Stack>
 
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
@@ -546,6 +532,31 @@ const AdminAnalyticsPage = () => {
           )}
         </Stack>
       </Grid>
+
+      <Drawer
+        anchor="right"
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        PaperProps={{ sx: { width: { xs: "100%", sm: 360 } } }}
+      >
+        <Stack spacing={2} sx={{ p: 2 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">Filters</Typography>
+            <Button size="small" onClick={() => setFiltersOpen(false)}>
+              Close
+            </Button>
+          </Stack>
+          <AnalyticsFilterPanel filters={draftFilters} setFilters={setDraftFilters} statusLabelMap={STATUS_LABEL} />
+          <Stack direction="row" spacing={1}>
+            <Button variant="contained" onClick={applyFilters} fullWidth>
+              Apply
+            </Button>
+            <Button variant="outlined" onClick={resetFilters} fullWidth>
+              Reset
+            </Button>
+          </Stack>
+        </Stack>
+      </Drawer>
 
       <AssignCategoryDialog
         open={Boolean(selectedRequest)}

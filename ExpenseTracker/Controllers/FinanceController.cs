@@ -28,5 +28,31 @@ public class FinanceController : ApiControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPost("reject")]
+    public async Task<ActionResult<FinanceStatusDto>> RejectPayment([FromBody] FinanceDecisionDto dto)
+    {
+        try
+        {
+            return Ok(await _expenseService.RejectPaymentAsync(dto.RequestId, GetName(), dto));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("hold")]
+    public async Task<ActionResult<FinanceStatusDto>> HoldPayment([FromBody] FinanceDecisionDto dto)
+    {
+        try
+        {
+            return Ok(await _expenseService.HoldPaymentAsync(dto.RequestId, GetName(), dto));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }
 

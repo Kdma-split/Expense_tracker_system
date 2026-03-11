@@ -93,6 +93,15 @@ public class FinancePaymentValidator : AbstractValidator<FinancePaymentDto>
     }
 }
 
+public class FinanceDecisionValidator : AbstractValidator<FinanceDecisionDto>
+{
+    public FinanceDecisionValidator()
+    {
+        RuleFor(x => x.RequestId).GreaterThan(0);
+        RuleFor(x => x.Notes).MaximumLength(1000);
+    }
+}
+
 public class UpdateRequestCategoryValidator : AbstractValidator<UpdateRequestCategoryDto>
 {
     public UpdateRequestCategoryValidator()

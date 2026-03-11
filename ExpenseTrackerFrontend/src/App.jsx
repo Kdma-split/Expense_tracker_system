@@ -11,6 +11,8 @@ import ManagerApprovedPage from "./pages/manager/ManagerApprovedPage";
 import ManagerRejectedPage from "./pages/manager/ManagerRejectedPage";
 import FinancePendingPage from "./pages/finance/FinancePendingPage";
 import FinanceApprovedPage from "./pages/finance/FinanceApprovedPage";
+import FinanceRejectedPage from "./pages/finance/FinanceRejectedPage";
+import FinanceOnHoldPage from "./pages/finance/FinanceOnHoldPage";
 import AdminEmployeesPage from "./pages/admin/AdminEmployeesPage";
 import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 
@@ -38,10 +40,12 @@ const App = () => (
       <Route path="manager/rejected" element={<ProtectedRoute roles={["Manager", "Director"]}><ManagerRejectedPage /></ProtectedRoute>} />
 
       <Route path="finance/pending" element={<ProtectedRoute roles={["Finance"]}><FinancePendingPage /></ProtectedRoute>} />
+      <Route path="finance/on-hold" element={<ProtectedRoute roles={["Finance"]}><FinanceOnHoldPage /></ProtectedRoute>} />
+      <Route path="finance/rejected" element={<ProtectedRoute roles={["Finance"]}><FinanceRejectedPage /></ProtectedRoute>} />
       <Route path="finance/approved" element={<ProtectedRoute roles={["Finance"]}><FinanceApprovedPage /></ProtectedRoute>} />
 
       <Route path="admin/employees" element={<ProtectedRoute roles={["Admin"]}><AdminEmployeesPage /></ProtectedRoute>} />
-      <Route path="admin/analytics" element={<ProtectedRoute roles={["Admin"]}><AdminAnalyticsPage /></ProtectedRoute>} />
+      <Route path="admin/analytics" element={<ProtectedRoute roles={["Admin", "Finance"]}><AdminAnalyticsPage /></ProtectedRoute>} />
     </Route>
   </Routes>
 );

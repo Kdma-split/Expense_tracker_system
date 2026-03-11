@@ -1,19 +1,17 @@
 import { useState } from "react";
-import { Button, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, TextField, Stack, Typography } from "@mui/material";
+import { Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import { api } from "../../api/client";
 import RequestTable from "../../components/RequestTable";
 import { REQUEST_STATUS } from "../../components/constants";
 import { useRequestsQuery } from "../../api/hooks/requests";
 import { useAppMutation } from "../../api/hooks/mutations";
+import { api } from "../../api/client";
 
-const FinancePendingPage = () => {
-  const { data } = useRequestsQuery({ status: REQUEST_STATUS.Approved, pageNumber: 1, pageSize: 100 });
+const FinanceOnHoldPage = () => {
+  const { data } = useRequestsQuery({ status: REQUEST_STATUS.OnHold, pageNumber: 1, pageSize: 100 });
   const rows = data?.items || [];
-  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState("");
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -26,9 +24,6 @@ const FinancePendingPage = () => {
   const rejectMutation = useAppMutation(({ requestId, notes }) =>
     api.post("/finance/reject", { requestId: Number(requestId), notes })
   );
-  const holdMutation = useAppMutation(({ requestId, notes }) =>
-    api.post("/finance/hold", { requestId: Number(requestId), notes })
-  );
 
   const openDialog = (type, requestId) => {
     setDialogType(type);
@@ -40,17 +35,15 @@ const FinancePendingPage = () => {
   const handleSubmit = () => {
     if (dialogType === "approve") {
       markPaidMutation.mutate({ requestId: selectedRequest, notes: remarks });
-    } else if (dialogType === "reject") {
-      rejectMutation.mutate({ requestId: selectedRequest, notes: remarks });
     } else {
-      holdMutation.mutate({ requestId: selectedRequest, notes: remarks });
+      rejectMutation.mutate({ requestId: selectedRequest, notes: remarks });
     }
     setDialogOpen(false);
   };
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h5">Pending Requests</Typography>
+      <Typography variant="h5">On Hold Requests</Typography>
       <Card>
         <CardContent>
           <RequestTable
@@ -83,7 +76,7 @@ const FinancePendingPage = () => {
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>
-          {dialogType === "approve" ? "Mark as Paid" : dialogType === "reject" ? "Reject Request" : "Hold Request"}
+          {dialogType === "approve" ? "Mark as Paid" : "Reject Request"}
         </DialogTitle>
         <DialogContent>
           <TextField
@@ -99,12 +92,8 @@ const FinancePendingPage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            color={dialogType === "reject" ? "error" : dialogType === "hold" ? "warning" : "success"}
-          >
-            {dialogType === "approve" ? "Confirm Payment" : dialogType === "reject" ? "Reject" : "Put On Hold"}
+          <Button onClick={handleSubmit} variant="contained" color={dialogType === "reject" ? "error" : "success"}>
+            {dialogType === "approve" ? "Confirm Payment" : "Reject"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -139,21 +128,6 @@ const FinancePendingPage = () => {
         <MenuItem
           onClick={() => {
             setMenuAnchor(null);
-            openDialog("hold", selectedRequest);
-          }}
-          sx={{ gap: 1 }}
-        >
-          <ListItemIcon sx={{ minWidth: 28, color: "warning.main" }}>
-            <PauseCircleOutlineIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primary="Hold"
-            primaryTypographyProps={{ fontWeight: 600, color: "warning.main" }}
-          />
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            setMenuAnchor(null);
             openDialog("reject", selectedRequest);
           }}
           sx={{ gap: 1 }}
@@ -171,4 +145,4 @@ const FinancePendingPage = () => {
   );
 };
 
-export default FinancePendingPage;
+export default FinanceOnHoldPage;

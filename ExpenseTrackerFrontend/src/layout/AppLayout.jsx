@@ -14,7 +14,7 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
@@ -22,40 +22,78 @@ const drawerWidth = 250;
 
 const menuByRole = {
   Employee: [
-    { label: "Drafts", path: "/employee/drafts" },
-    { label: "Submitted Requests", path: "/employee/submitted" },
-    { label: "Approved Requests", path: "/employee/approved" },
-    { label: "Rejected Requests", path: "/employee/rejected" }
+    {
+      section: "Requests",
+      items: [
+        { label: "Drafts", path: "/employee/drafts" },
+        { label: "Submitted", path: "/employee/submitted" },
+        { label: "Approved", path: "/employee/approved" },
+        { label: "Rejected", path: "/employee/rejected" }
+      ]
+    }
   ],
-  Manager: {
-    "My Requests": [
-      { label: "Drafts", path: "/employee/drafts" },
-      { label: "Submitted", path: "/employee/submitted" },
-      { label: "Approved", path: "/employee/approved" },
-      { label: "Rejected", path: "/employee/rejected" }
-    ],
-    "Team Requests": [
-      { label: "Pending", path: "/manager/pending" },
-      { label: "Approved", path: "/manager/approved" },
-      { label: "Rejected", path: "/manager/rejected" }
-    ]
-  },
+  Manager: [
+    {
+      section: "Requests",
+      items: [
+        { label: "Drafts", path: "/employee/drafts" },
+        { label: "Submitted", path: "/employee/submitted" },
+        { label: "Approved", path: "/employee/approved" },
+        { label: "Rejected", path: "/employee/rejected" }
+      ]
+    },
+    {
+      section: "Team Requests",
+      items: [
+        { label: "Pending", path: "/manager/pending" },
+        { label: "Approved", path: "/manager/approved" },
+        { label: "Rejected", path: "/manager/rejected" }
+      ]
+    }
+  ],
   Director: [
-    { label: "My Drafts", path: "/employee/drafts" },
-    { label: "My Submitted", path: "/employee/submitted" },
-    { label: "My Approved", path: "/employee/approved" },
-    { label: "My Rejected", path: "/employee/rejected" },
-    { label: "Team Pending", path: "/manager/pending" },
-    { label: "Team Approved", path: "/manager/approved" },
-    { label: "Team Rejected", path: "/manager/rejected" }
+    {
+      section: "Requests",
+      items: [
+        { label: "Drafts", path: "/employee/drafts" },
+        { label: "Submitted", path: "/employee/submitted" },
+        { label: "Approved", path: "/employee/approved" },
+        { label: "Rejected", path: "/employee/rejected" }
+      ]
+    },
+    {
+      section: "Team Requests",
+      items: [
+        { label: "Pending", path: "/manager/pending" },
+        { label: "Approved", path: "/manager/approved" },
+        { label: "Rejected", path: "/manager/rejected" }
+      ]
+    }
   ],
   Finance: [
-    { label: "Pending Requests", path: "/finance/pending" },
-    { label: "Approved Requests", path: "/finance/approved" }
+    {
+      section: "Requests",
+      collapsible: true,
+      items: [
+        { label: "Pending", path: "/finance/pending" },
+        { label: "On Hold", path: "/finance/on-hold" },
+        { label: "Rejected", path: "/finance/rejected" },
+        { label: "Approved", path: "/finance/approved" }
+      ]
+    },
+    {
+      section: "",
+      items: [{ label: "Analytics", path: "/admin/analytics", bold: true }]
+    }
   ],
   Admin: [
-    { label: "Employees", path: "/admin/employees" },
-    { label: "Analytics", path: "/admin/analytics" }
+    {
+      section: "",
+      items: [
+        { label: "Employees", path: "/admin/employees" },
+        { label: "Analytics", path: "/admin/analytics" }
+      ]
+    }
   ]
 };
 
@@ -65,12 +103,16 @@ const AppLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedSections, setExpandedSections] = useState({});
 
-  // Check if user is Manager
-  const isManager = user.role === "Manager";
-  
-  // Get menu items - handle both array (for non-manager roles) and object (for Manager)
-  const isNestedMenu = isManager && typeof menu === "object" && !Array.isArray(menu);
-  
+  useEffect(() => {
+    const initial = {};
+    menu.forEach((section) => {
+      if (section.section && section.collapsible !== false) {
+        initial[section.section] = true;
+      }
+    });
+    setExpandedSections(initial);
+  }, [menu]);
+
   const handleSectionClick = (section) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -113,48 +155,57 @@ const AppLayout = () => {
       >
         <Toolbar />
         <List>
-          {isNestedMenu ? (
-            // Manager nested menu
-            Object.keys(menu).map((section) => (
-              <Box key={section}>
-                <ListItemButton 
-                  onClick={() => handleSectionClick(section)}
-                  sx={{ 
-                    bgcolor: expandedSections[section] ? "action.selected" : "transparent"
-                  }}
-                >
-                  <ListItemText 
-                    primary={section} 
-                    primaryTypographyProps={{
-                      fontWeight: expandedSections[section] ? 700 : 400
-                    }}
-                  />
-                  {expandedSections[section] ? <ExpandLess /> : <ExpandMore />}
-                </ListItemButton>
-                <Collapse in={expandedSections[section]} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding>
-                    {menu[section].map((item) => (
-                      <ListItemButton 
-                        component={NavLink} 
-                        to={item.path} 
-                        key={item.path}
-                        sx={{ pl: 4 }}
-                      >
-                        <ListItemText primary={item.label} />
+          {menu.map((section) => (
+            <Box key={section.section}>
+              {section.section ? (
+                <>
+                  {section.collapsible === false ? (
+                    <>
+                      <ListItemButton disabled>
+                        <ListItemText
+                          primary={section.section}
+                          primaryTypographyProps={{ fontWeight: 700 }}
+                        />
                       </ListItemButton>
-                    ))}
-                  </List>
-                </Collapse>
-              </Box>
-            ))
-          ) : (
-            // Regular flat menu for other roles
-            menu.map((item) => (
-              <ListItemButton component={NavLink} to={item.path} key={item.path}>
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            ))
-          )}
+                      {section.items.map((item) => (
+                        <ListItemButton component={NavLink} to={item.path} key={item.path}>
+                          <ListItemText primary={item.label} />
+                        </ListItemButton>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <ListItemButton
+                        onClick={() => handleSectionClick(section.section)}
+                        sx={{ bgcolor: expandedSections[section.section] ? "action.selected" : "transparent" }}
+                      >
+                        <ListItemText
+                          primary={section.section}
+                          primaryTypographyProps={{ fontWeight: 700 }}
+                        />
+                        {expandedSections[section.section] ? <ExpandLess /> : <ExpandMore />}
+                      </ListItemButton>
+                      <Collapse in={expandedSections[section.section]} timeout="auto" unmountOnExit>
+                        <List component="div" disablePadding>
+                          {section.items.map((item) => (
+                            <ListItemButton component={NavLink} to={item.path} key={item.path} sx={{ pl: 4 }}>
+                              <ListItemText primary={item.label} />
+                            </ListItemButton>
+                          ))}
+                        </List>
+                      </Collapse>
+                    </>
+                  )}
+                </>
+              ) : (
+                section.items.map((item) => (
+                  <ListItemButton component={NavLink} to={item.path} key={item.path}>
+                    <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: item.bold ? 700 : 400 }} />
+                  </ListItemButton>
+                ))
+              )}
+            </Box>
+          ))}
         </List>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3, transition: "margin-left 0.2s ease", ml: sidebarOpen ? 0 : -`${drawerWidth}px` }}>

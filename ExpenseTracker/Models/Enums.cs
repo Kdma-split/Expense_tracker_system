@@ -17,14 +17,16 @@ public enum RequestStatus
     Submitted = 1,
     Approved = 2,
     Rejected = 3,
-    Paid = 4
+    Paid = 4,
+    OnHold = 5
 }
 
 public enum FinanceStatusEnum
 {
     Pending = 0,
     Paid = 1,
-    Rejected = 2
+    Rejected = 2,
+    OnHold = 3
 }
 
 public enum ApprovedStatus

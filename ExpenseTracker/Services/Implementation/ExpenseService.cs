@@ -301,6 +301,7 @@ public class ExpenseService : IExpenseService
             .AsNoTracking()
             .Include(r => r.Category)
             .Include(r => r.Items).ThenInclude(i => i.Category)
+            .Include(r => r.FinanceStatus)
             .Where(r => r.Id == request.Id)
             .Select(ToRequestDto())
             .FirstAsync();
@@ -312,6 +313,7 @@ public class ExpenseService : IExpenseService
             .Include(r => r.Category)
             .Include(r => r.StatusHistory)
             .Include(r => r.Items).ThenInclude(i => i.Category)
+            .Include(r => r.FinanceStatus)
             .AsQueryable();
         if (role == "Employee")
         {
@@ -338,6 +340,7 @@ public class ExpenseService : IExpenseService
             .Include(r => r.Category)
             .Include(r => r.StatusHistory)
             .Include(r => r.Items).ThenInclude(i => i.Category)
+            .Include(r => r.FinanceStatus)
             .Where(r => teamIds.Contains(r.EmployeeId));
 
         query = ApplyRequestFilter(query, effectiveFilter);
@@ -352,6 +355,7 @@ public class ExpenseService : IExpenseService
             .Include(r => r.Category)
             .Include(r => r.StatusHistory)
             .Include(r => r.Items).ThenInclude(i => i.Category)
+            .Include(r => r.FinanceStatus)
             .Where(r => r.Id == id);
         if (role == "Employee")
         {
@@ -533,9 +537,9 @@ public class ExpenseService : IExpenseService
         var request = await _db.Requests.FirstOrDefaultAsync(r => r.Id == requestId)
             ?? throw new InvalidOperationException("Request not found");
 
-        if (request.Status != RequestStatus.Approved)
+        if (request.Status is not (RequestStatus.Approved or RequestStatus.OnHold))
         {
-            throw new InvalidOperationException("Finance can only pay manager-approved requests");
+            throw new InvalidOperationException("Finance can only pay approved or on-hold requests");
         }
 
         await using var tx = await _db.Database.BeginTransactionAsync();
@@ -552,22 +556,143 @@ public class ExpenseService : IExpenseService
             approved.UpdatedDate = DateTime.UtcNow;
         }
 
-        var financeStatus = new FinanceStatus
+        var financeStatus = await _db.FinanceStatuses.FirstOrDefaultAsync(f => f.RequestId == requestId);
+        if (financeStatus == null)
         {
-            RequestId = requestId,
-            Status = FinanceStatusEnum.Paid,
-            ProcessedBy = processedBy,
-            PaymentDate = DateTime.UtcNow,
-            CreatedBy = processedBy,
-            CreatedDate = DateTime.UtcNow
-        };
-
-        _db.FinanceStatuses.Add(financeStatus);
+            financeStatus = new FinanceStatus
+            {
+                RequestId = requestId,
+                Status = FinanceStatusEnum.Paid,
+                ProcessedBy = processedBy,
+                PaymentDate = DateTime.UtcNow,
+                CreatedBy = processedBy,
+                CreatedDate = DateTime.UtcNow
+            };
+            _db.FinanceStatuses.Add(financeStatus);
+        }
+        else
+        {
+            financeStatus.Status = FinanceStatusEnum.Paid;
+            financeStatus.ProcessedBy = processedBy;
+            financeStatus.PaymentDate = DateTime.UtcNow;
+            financeStatus.UpdatedBy = processedBy;
+            financeStatus.UpdatedDate = DateTime.UtcNow;
+        }
         _db.StatusHistory.Add(new StatusHistory
         {
             RequestId = request.Id,
             FromStatus = from,
             ToStatus = RequestStatus.Paid,
+            ChangedBy = processedBy,
+            Remarks = dto.Notes,
+            ChangedAt = DateTime.UtcNow,
+            CreatedBy = processedBy,
+            CreatedDate = DateTime.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        await tx.CommitAsync();
+        return new FinanceStatusDto(financeStatus.Id, financeStatus.RequestId, financeStatus.Status, financeStatus.ProcessedBy, financeStatus.PaymentDate);
+    }
+
+    public async Task<FinanceStatusDto> RejectPaymentAsync(int requestId, string processedBy, FinanceDecisionDto dto)
+    {
+        var request = await _db.Requests.FirstOrDefaultAsync(r => r.Id == requestId)
+            ?? throw new InvalidOperationException("Request not found");
+
+        if (request.Status is not (RequestStatus.Approved or RequestStatus.OnHold))
+        {
+            throw new InvalidOperationException("Finance can only reject approved or on-hold requests");
+        }
+
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        var from = request.Status;
+        request.Status = RequestStatus.Rejected;
+        request.UpdatedBy = processedBy;
+        request.UpdatedDate = DateTime.UtcNow;
+
+        var financeStatus = await _db.FinanceStatuses.FirstOrDefaultAsync(f => f.RequestId == requestId);
+        if (financeStatus == null)
+        {
+            financeStatus = new FinanceStatus
+            {
+                RequestId = requestId,
+                Status = FinanceStatusEnum.Rejected,
+                ProcessedBy = processedBy,
+                PaymentDate = null,
+                CreatedBy = processedBy,
+                CreatedDate = DateTime.UtcNow
+            };
+            _db.FinanceStatuses.Add(financeStatus);
+        }
+        else
+        {
+            financeStatus.Status = FinanceStatusEnum.Rejected;
+            financeStatus.ProcessedBy = processedBy;
+            financeStatus.PaymentDate = null;
+            financeStatus.UpdatedBy = processedBy;
+            financeStatus.UpdatedDate = DateTime.UtcNow;
+        }
+        _db.StatusHistory.Add(new StatusHistory
+        {
+            RequestId = request.Id,
+            FromStatus = from,
+            ToStatus = RequestStatus.Rejected,
+            ChangedBy = processedBy,
+            Remarks = dto.Notes,
+            ChangedAt = DateTime.UtcNow,
+            CreatedBy = processedBy,
+            CreatedDate = DateTime.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        await tx.CommitAsync();
+        return new FinanceStatusDto(financeStatus.Id, financeStatus.RequestId, financeStatus.Status, financeStatus.ProcessedBy, financeStatus.PaymentDate);
+    }
+
+    public async Task<FinanceStatusDto> HoldPaymentAsync(int requestId, string processedBy, FinanceDecisionDto dto)
+    {
+        var request = await _db.Requests.FirstOrDefaultAsync(r => r.Id == requestId)
+            ?? throw new InvalidOperationException("Request not found");
+
+        if (request.Status != RequestStatus.Approved)
+        {
+            throw new InvalidOperationException("Finance can only hold approved requests");
+        }
+
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        var from = request.Status;
+        request.Status = RequestStatus.OnHold;
+        request.UpdatedBy = processedBy;
+        request.UpdatedDate = DateTime.UtcNow;
+
+        var financeStatus = await _db.FinanceStatuses.FirstOrDefaultAsync(f => f.RequestId == requestId);
+        if (financeStatus == null)
+        {
+            financeStatus = new FinanceStatus
+            {
+                RequestId = requestId,
+                Status = FinanceStatusEnum.OnHold,
+                ProcessedBy = processedBy,
+                PaymentDate = null,
+                CreatedBy = processedBy,
+                CreatedDate = DateTime.UtcNow
+            };
+            _db.FinanceStatuses.Add(financeStatus);
+        }
+        else
+        {
+            financeStatus.Status = FinanceStatusEnum.OnHold;
+            financeStatus.ProcessedBy = processedBy;
+            financeStatus.PaymentDate = null;
+            financeStatus.UpdatedBy = processedBy;
+            financeStatus.UpdatedDate = DateTime.UtcNow;
+        }
+        _db.StatusHistory.Add(new StatusHistory
+        {
+            RequestId = request.Id,
+            FromStatus = from,
+            ToStatus = RequestStatus.OnHold,
             ChangedBy = processedBy,
             Remarks = dto.Notes,
             ChangedAt = DateTime.UtcNow,
@@ -818,7 +943,10 @@ private static Expression<Func<Request, RequestDto>> ToRequestDto()
                     : r.Category != null ? r.Category.Name : null,
             r.DateOfExpense, r.CreatedAt, r.Status,
             r.StatusHistory
-                .Where(h => h.ToStatus == RequestStatus.Approved || h.ToStatus == RequestStatus.Rejected || h.ToStatus == RequestStatus.Paid)
+                .Where(h => h.ToStatus == RequestStatus.Approved
+                    || h.ToStatus == RequestStatus.Rejected
+                    || h.ToStatus == RequestStatus.Paid
+                    || h.ToStatus == RequestStatus.OnHold)
                 .OrderByDescending(h => h.ChangedAt)
                 .Select(h => h.Remarks)
                 .FirstOrDefault(),
@@ -828,7 +956,8 @@ private static Expression<Func<Request, RequestDto>> ToRequestDto()
                 i.Amount,
                 i.CategoryId,
                 i.Category != null ? i.Category.Name : null
-            )).ToList()
+            )).ToList(),
+            r.FinanceStatus != null ? r.FinanceStatus.Status : null
         );
     }
 }
