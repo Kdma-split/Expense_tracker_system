@@ -37,6 +37,7 @@ const emptyItem = () => ({
 const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) => {
   const [form, setForm] = useState(initialState);
   const [items, setItems] = useState([emptyItem()]);
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
@@ -73,6 +74,7 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
         setForm(initialState);
         setItems([emptyItem()]);
       }
+      setError("");
       const existingDocs = getDocumentsForDraft(draftId, initialData);
       setUploadedDocuments(existingDocs);
       setUploadedFiles(
@@ -98,6 +100,29 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
     return Number.isFinite(value) ? sum + value : sum;
   }, 0);
 
+  useEffect(() => {
+    if (!open) return;
+    if (!selectableCategories.length) return;
+    const defaultCategoryId = selectableCategories[0].id;
+    setItems((prev) =>
+      prev.map((item) => (item.categoryId ? item : { ...item, categoryId: defaultCategoryId }))
+    );
+  }, [open, selectableCategories]);
+
+  const validateDraft = () => {
+    if (!form.subject.trim()) return "Subject is required";
+    if (!items.length) return "At least one item is required";
+    if (!selectableCategories.length) return "No active categories available";
+    for (const item of items) {
+      if (!item.description?.trim()) return "Each item needs a description";
+      const amount = Number(item.amount);
+      if (!Number.isFinite(amount) || amount <= 0) return "Each item must have a valid amount";
+      const categoryId = Number(item.categoryId);
+      if (!Number.isFinite(categoryId) || categoryId <= 0) return "Each item must have a category";
+    }
+    return "";
+  };
+
   const onUploadDocuments = async (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
@@ -110,14 +135,20 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
   };
 
   const saveDraft = async () => {
+    const validationError = validateDraft();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError("");
     setSaving(true);
     try {
       const payload = {
-        subject: form.subject,
-        description: form.description,
+        subject: form.subject.trim(),
+        description: form.description.trim(),
         dateOfExpense: new Date(`${form.dateOfExpense}T00:00:00`).toISOString(),
         items: items.map((item) => ({
-          description: item.description,
+          description: item.description.trim(),
           amount: Number(item.amount),
           categoryId: Number(item.categoryId)
         }))
@@ -150,6 +181,7 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
       <DialogTitle>Create Request</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
+          {error ? <Alert severity="error">{error}</Alert> : null}
           <TextField label="Subject" value={form.subject} onChange={(e) => change("subject", e.target.value)} />
           <TextField label="Notes (optional)" multiline minRows={2} value={form.description} onChange={(e) => change("description", e.target.value)} />
           <Stack spacing={1}>

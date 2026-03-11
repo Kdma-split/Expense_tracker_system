@@ -95,7 +95,7 @@ public class ExpenseService : IExpenseService
     {
         await ValidateCategoriesAsync(dto.Items.Select(i => i.CategoryId));
         var totalAmount = dto.Items.Sum(i => i.Amount);
-        var categoryId = dto.Items.Count == 1 ? dto.Items.First().CategoryId : null;
+        var categoryId = dto.Items.Count == 1 ? (int?)dto.Items.First().CategoryId : null;
 
         var draft = new Draft
         {
@@ -143,7 +143,7 @@ public class ExpenseService : IExpenseService
     {
         await ValidateCategoriesAsync(dto.Items.Select(i => i.CategoryId));
         var totalAmount = dto.Items.Sum(i => i.Amount);
-        var categoryId = dto.Items.Count == 1 ? dto.Items.First().CategoryId : null;
+        var categoryId = dto.Items.Count == 1 ? (int?)dto.Items.First().CategoryId : null;
 
         var draft = await _db.Drafts
             .Include(d => d.Items)
@@ -219,7 +219,7 @@ public class ExpenseService : IExpenseService
         await using var tx = await _db.Database.BeginTransactionAsync();
 
         var totalAmount = draft.Items.Sum(i => i.Amount);
-        var requestCategoryId = draft.Items.Count == 1 ? draft.Items.First().CategoryId : null;
+        var requestCategoryId = draft.Items.Count == 1 ? (int?)draft.Items.First().CategoryId : null;
 
         var request = new Request
         {
