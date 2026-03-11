@@ -159,22 +159,11 @@ const AdminAnalyticsPage = () => {
   }, [filtered.length, rowsPerPage, page]);
 
   useEffect(() => {
-    if (activeTab !== "requests") return;
-    const previous = document.body.style.overflowY;
-    document.body.style.overflowY = "hidden";
+    document.body.style.overflowY = "auto";
     return () => {
-      document.body.style.overflowY = previous;
+      document.body.style.overflowY = "";
     };
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab !== "overview") return;
-    const previous = document.body.style.overflowY;
-    document.body.style.overflowY = "hidden";
-    return () => {
-      document.body.style.overflowY = previous;
-    };
-  }, [activeTab]);
+  }, []);
 
   const pagedRows = useMemo(() => {
     const start = page * rowsPerPage;
@@ -311,8 +300,8 @@ const AdminAnalyticsPage = () => {
 
   return (
     <Grid container spacing={1.5} sx={{ overflowX: "hidden" }}>
-      <Grid size={{ xs: 12 }}>
-        <Stack spacing={1}>
+      <Grid size={{ xs: 12 }} sx={{ width: "100%" }}>
+        <Stack spacing={1} sx={{ pt: 0.5, pb: 0.5, width: "100%" }}>
           <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }}>
             <Box>
               <Typography variant="h5">Analytics</Typography>
@@ -366,7 +355,7 @@ const AdminAnalyticsPage = () => {
           </Tabs>
 
           {activeTab === "overview" ? (
-            <Grid container spacing={2} sx={{ minHeight: "calc(100vh - 240px)" }}>
+            <Grid container spacing={2} sx={{ height: "calc(100vh - 280px)", transform: "scale(0.97)", transformOrigin: "top left" }}>
               <Grid size={{ xs: 12 }}>
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, md: 8 }}>
@@ -409,7 +398,7 @@ const AdminAnalyticsPage = () => {
               </Grid>
             </Grid>
           ) : (
-            <Card sx={{ height: "calc(100vh - 220px)" }}>
+            <Card sx={{ height: "calc(100vh - 280px)" }}>
               <CardContent sx={{ height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
                 <Typography variant="h6">Filtered Requests</Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
