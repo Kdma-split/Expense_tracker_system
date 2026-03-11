@@ -1,11 +1,11 @@
 import { Box, Card, CardContent, Typography } from "@mui/material";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-const TrendLineChartCard = ({ data }) => (
+const TrendLineChartCard = ({ data, height = 240 }) => (
   <Card>
     <CardContent>
       <Typography variant="subtitle1">Amount Trend</Typography>
-      <Box height={260}>
+      <Box height={height}>
         <ResponsiveContainer>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />

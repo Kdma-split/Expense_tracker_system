@@ -168,7 +168,17 @@ const AppLayout = () => {
                         />
                       </ListItemButton>
                       {section.items.map((item) => (
-                        <ListItemButton component={NavLink} to={item.path} key={item.path}>
+                        <ListItemButton
+                          component={NavLink}
+                          to={item.path}
+                          key={item.path}
+                          sx={{
+                            "&.active": {
+                              bgcolor: "action.selected",
+                              fontWeight: 700
+                            }
+                          }}
+                        >
                           <ListItemText primary={item.label} />
                         </ListItemButton>
                       ))}
@@ -188,7 +198,18 @@ const AppLayout = () => {
                       <Collapse in={expandedSections[section.section]} timeout="auto" unmountOnExit>
                         <List component="div" disablePadding>
                           {section.items.map((item) => (
-                            <ListItemButton component={NavLink} to={item.path} key={item.path} sx={{ pl: 4 }}>
+                            <ListItemButton
+                              component={NavLink}
+                              to={item.path}
+                              key={item.path}
+                              sx={{
+                                pl: 4,
+                                "&.active": {
+                                  bgcolor: "action.selected",
+                                  fontWeight: 700
+                                }
+                              }}
+                            >
                               <ListItemText primary={item.label} />
                             </ListItemButton>
                           ))}
@@ -199,7 +220,17 @@ const AppLayout = () => {
                 </>
               ) : (
                 section.items.map((item) => (
-                  <ListItemButton component={NavLink} to={item.path} key={item.path}>
+                  <ListItemButton
+                    component={NavLink}
+                    to={item.path}
+                    key={item.path}
+                    sx={{
+                      "&.active": {
+                        bgcolor: "action.selected",
+                        fontWeight: 700
+                      }
+                    }}
+                  >
                     <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: item.bold ? 700 : 400 }} />
                   </ListItemButton>
                 ))

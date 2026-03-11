@@ -6,6 +6,9 @@ import {
   CardContent,
   Chip,
   Drawer,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Divider,
   Grid,
   IconButton,
@@ -17,6 +20,7 @@ import {
   Typography
 } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import InsightsIcon from "@mui/icons-material/Insights";
 import RequestTable from "../../components/RequestTable";
 import { REQUEST_STATUS, STATUS_LABEL, STATUS_COLOR } from "../../components/constants";
 import { useEmployeesQuery } from "../../api/hooks/employees";
@@ -115,12 +119,12 @@ const AdminAnalyticsPage = () => {
   const requests = requestData?.items || [];
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [draftFilters, setDraftFilters] = useState(defaultFilters);
   const [filters, setFilters] = useState(defaultFilters);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [showPulseBrief, setShowPulseBrief] = useState(false);
   const [briefRunId, setBriefRunId] = useState(0);
 
   const employeeIdFromFilter = useMemo(() => {
@@ -288,15 +292,26 @@ const AdminAnalyticsPage = () => {
   };
 
   return (
-    <Grid container spacing={2}>
+    <Grid container spacing={1.5} sx={{ overflowX: "hidden" }}>
       <Grid size={{ xs: 12 }}>
-        <Stack spacing={2}>
+        <Stack spacing={1.5}>
           <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }}>
             <Box>
               <Typography variant="h5">Analytics</Typography>
               <Typography variant="body2">{filtered.length} results</Typography>
             </Box>
             <Stack direction="row" spacing={1} alignItems="center">
+              <Tooltip title="Insights">
+                <IconButton
+                  onClick={() => {
+                    setBriefRunId((prev) => prev + 1);
+                    setInsightsOpen(true);
+                  }}
+                  color="primary"
+                >
+                  <InsightsIcon />
+                </IconButton>
+              </Tooltip>
               <Tooltip title="Filters">
                 <IconButton onClick={() => setFiltersOpen(true)} color="primary">
                   <FilterListIcon />
@@ -333,128 +348,8 @@ const AdminAnalyticsPage = () => {
           </Tabs>
 
           {activeTab === "overview" ? (
-            <Stack spacing={2}>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} justifyContent="space-between">
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    setBriefRunId((prev) => prev + 1);
-                    setShowPulseBrief(true);
-                  }}
-                  sx={{
-                    alignSelf: "flex-start",
-                    fontWeight: 700,
-                    borderRadius: 999,
-                    px: 2,
-                    textTransform: "none",
-                    boxShadow: "none"
-                  }}
-                >
-                  Reveal Insights
-                </Button>
-                {showPulseBrief ? (
-                  <Button variant="text" onClick={() => setShowPulseBrief(false)} sx={{ alignSelf: "flex-start" }}>
-                    Hide
-                  </Button>
-                ) : null}
-              </Stack>
-
-              {showPulseBrief ? (
-                <Card
-                  variant="outlined"
-                  sx={{
-                    borderRadius: 2.5,
-                    overflow: "hidden",
-                    borderColor: "rgba(30,64,175,0.22)",
-                    boxShadow: "0 6px 20px rgba(15,23,42,0.08)",
-                    position: "relative",
-                    transition: "transform 180ms ease, box-shadow 220ms ease",
-                    "&::before": {
-                      content: "\"\"",
-                      position: "absolute",
-                      inset: 0,
-                      pointerEvents: "none",
-                      background: "linear-gradient(320deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.22) 40%, rgba(255,255,255,0.54) 100%)",
-                      transition: "background 300ms ease"
-                    },
-                    "&::after": {
-                      content: "\"\"",
-                      position: "absolute",
-                      top: -120,
-                      left: -220,
-                      width: 180,
-                      height: "170%",
-                      pointerEvents: "none",
-                      background: "linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.58) 48%, rgba(255,255,255,0) 100%)",
-                      transform: "rotate(14deg)",
-                      opacity: 0,
-                      transition: "left 520ms ease, opacity 220ms ease"
-                    },
-                    "&:hover": {
-                      transform: "translateY(-1px)",
-                      boxShadow: "0 10px 28px rgba(15,23,42,0.12)"
-                    },
-                    "&:hover::before": {
-                      background: "linear-gradient(140deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.18) 36%, rgba(255,255,255,0.52) 100%)"
-                    },
-                    "&:hover::after": {
-                      left: "110%",
-                      opacity: 1
-                    }
-                  }}
-                >
-                  <Box
-                    sx={{
-                      px: 2,
-                      py: 1.25,
-                      color: "text.primary",
-                      backgroundColor: "#f1f5f9",
-                      borderBottom: "1px solid",
-                      borderColor: "rgba(15,23,42,0.14)"
-                    }}
-                  >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Stack spacing={0.3}>
-                        <Typography variant="overline" sx={{ letterSpacing: 1.1, color: "text.secondary", fontWeight: 700 }}>
-                          Analytics
-                        </Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a" }}>
-                          AI Insights
-                        </Typography>
-                      </Stack>
-                      <Chip size="small" label="Insight Ready" sx={{ fontWeight: 700, color: "#0f172a", bgcolor: "#e2e8f0" }} />
-                    </Stack>
-                  </Box>
-                  <CardContent sx={{ p: 0 }}>
-                    <Stack divider={<Divider sx={{ borderColor: "rgba(15,23,42,0.12)" }} />}>
-                      {aiInsights.map((line, index) => (
-                        <Stack key={line} direction="row" spacing={1.5} sx={{ px: 2, py: 1.5 }} alignItems="flex-start">
-                          <Box
-                            sx={{
-                              minWidth: 26,
-                              height: 26,
-                              borderRadius: "50%",
-                              bgcolor: "#dbeafe",
-                              color: "#1e3a8a",
-                              display: "grid",
-                              placeItems: "center",
-                              fontSize: 12,
-                              fontWeight: 700
-                            }}
-                          >
-                            {index + 1}
-                          </Box>
-                          <Typography variant="body1" sx={{ lineHeight: 1.65, color: "#0f172a", fontWeight: 500 }}>
-                            {line}
-                          </Typography>
-                        </Stack>
-                      ))}
-                    </Stack>
-                  </CardContent>
-                </Card>
-              ) : null}
-
-              <Grid container spacing={2}>
+            <Stack spacing={1.5}>
+              <Grid container spacing={1.5}>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Card><CardContent><Typography variant="caption">Total Amount</Typography><Typography variant="h6">{totals.totalAmount.toFixed(2)}</Typography></CardContent></Card>
                 </Grid>
@@ -469,14 +364,14 @@ const AdminAnalyticsPage = () => {
                 </Grid>
               </Grid>
 
-              <StatusPieChartCard data={byStatus} title="Status Distribution" height={460} outerRadius={165} />
+              <StatusPieChartCard data={byStatus} title="Status Distribution" height={300} outerRadius={105} />
 
-              <Grid container spacing={2}>
+              <Grid container spacing={1.5}>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <CategoryBarChartCard data={byCategory} />
+                  <CategoryBarChartCard data={byCategory} height={220} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <TrendLineChartCard data={trend} />
+                  <TrendLineChartCard data={trend} height={220} />
                 </Grid>
               </Grid>
             </Stack>
@@ -557,6 +452,72 @@ const AdminAnalyticsPage = () => {
           </Stack>
         </Stack>
       </Drawer>
+
+      <Dialog open={insightsOpen} onClose={() => setInsightsOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ pb: 0.5 }}>
+          <Typography variant="overline" sx={{ letterSpacing: 1.1, color: "text.secondary", fontWeight: 700 }}>
+            Analytics
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            AI Insights
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Card
+            variant="outlined"
+            sx={{
+              borderRadius: 2.5,
+              overflow: "hidden",
+              borderColor: "rgba(30,64,175,0.22)",
+              boxShadow: "0 6px 20px rgba(15,23,42,0.08)"
+            }}
+          >
+            <Box
+              sx={{
+                px: 2,
+                py: 1.25,
+                color: "text.primary",
+                backgroundColor: "#f1f5f9",
+                borderBottom: "1px solid",
+                borderColor: "rgba(15,23,42,0.14)"
+              }}
+            >
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  Insight Summary
+                </Typography>
+                <Chip size="small" label="Insight Ready" sx={{ fontWeight: 700, color: "#0f172a", bgcolor: "#e2e8f0" }} />
+              </Stack>
+            </Box>
+            <CardContent sx={{ p: 0 }}>
+              <Stack divider={<Divider sx={{ borderColor: "rgba(15,23,42,0.12)" }} />}>
+                {aiInsights.map((line, index) => (
+                  <Stack key={line} direction="row" spacing={1.5} sx={{ px: 2, py: 1.5 }} alignItems="flex-start">
+                    <Box
+                      sx={{
+                        minWidth: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        bgcolor: "#dbeafe",
+                        color: "#1e3a8a",
+                        display: "grid",
+                        placeItems: "center",
+                        fontSize: 12,
+                        fontWeight: 700
+                      }}
+                    >
+                      {index + 1}
+                    </Box>
+                    <Typography variant="body1" sx={{ lineHeight: 1.65, color: "#0f172a", fontWeight: 500 }}>
+                      {line}
+                    </Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </CardContent>
+          </Card>
+        </DialogContent>
+      </Dialog>
 
       <AssignCategoryDialog
         open={Boolean(selectedRequest)}
