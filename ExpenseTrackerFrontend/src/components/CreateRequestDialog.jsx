@@ -6,27 +6,43 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   Snackbar,
   Stack,
   TextField,
   Typography
 } from "@mui/material";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { api } from "../api/client";
+import { useCategoriesQuery } from "../api/hooks/categories";
 import { getDocumentsForDraft, saveDocuments, serializeFiles } from "../utils/documentStore";
 
 const initialState = {
   subject: "",
   description: "",
-  amount: "",
   dateOfExpense: new Date().toISOString().slice(0, 10)
 };
 
+const emptyItem = () => ({
+  description: "",
+  categoryId: "",
+  amount: ""
+});
+
 const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) => {
   const [form, setForm] = useState(initialState);
+  const [items, setItems] = useState([emptyItem()]);
   const [saving, setSaving] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [uploadToastOpen, setUploadToastOpen] = useState(false);
+  const { data: categories = [] } = useCategoriesQuery(false, open);
+  const selectableCategories = categories.filter((category) => category.name !== "Uncategorized");
 
   useEffect(() => {
     if (open) {
@@ -34,11 +50,28 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
         setForm({
           subject: initialData.subject || "",
           description: initialData.description || "",
-          amount: initialData.amount || "",
           dateOfExpense: (initialData.dateOfExpense || "").slice(0, 10)
         });
+        if (Array.isArray(initialData.items) && initialData.items.length) {
+          setItems(
+            initialData.items.map((item) => ({
+              description: item.description || "",
+              categoryId: item.categoryId || "",
+              amount: item.amount ?? ""
+            }))
+          );
+        } else {
+          setItems([
+            {
+              description: initialData.description || "",
+              categoryId: initialData.categoryId || "",
+              amount: initialData.amount || ""
+            }
+          ]);
+        }
       } else {
         setForm(initialState);
+        setItems([emptyItem()]);
       }
       const existingDocs = getDocumentsForDraft(draftId, initialData);
       setUploadedDocuments(existingDocs);
@@ -54,6 +87,16 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
   }, [open, initialData, draftId]);
 
   const change = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const updateItem = (index, patch) =>
+    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  const addItem = () => setItems((prev) => [...prev, emptyItem()]);
+  const removeItem = (index) =>
+    setItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+
+  const totalAmount = items.reduce((sum, item) => {
+    const value = Number(item.amount);
+    return Number.isFinite(value) ? sum + value : sum;
+  }, 0);
 
   const onUploadDocuments = async (event) => {
     const files = Array.from(event.target.files || []);
@@ -72,8 +115,12 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
       const payload = {
         subject: form.subject,
         description: form.description,
-        amount: Number(form.amount),
-        dateOfExpense: new Date(`${form.dateOfExpense}T00:00:00`).toISOString()
+        dateOfExpense: new Date(`${form.dateOfExpense}T00:00:00`).toISOString(),
+        items: items.map((item) => ({
+          description: item.description,
+          amount: Number(item.amount),
+          categoryId: Number(item.categoryId)
+        }))
       };
 
       const response = draftId
@@ -90,6 +137,7 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
       onSaved?.();
       onClose();
       setForm(initialState);
+      setItems([emptyItem()]);
       setUploadedFiles([]);
       setUploadedDocuments([]);
     } finally {
@@ -103,8 +151,64 @@ const CreateRequestDialog = ({ open, onClose, onSaved, draftId, initialData }) =
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField label="Subject" value={form.subject} onChange={(e) => change("subject", e.target.value)} />
-          <TextField label="Description" multiline minRows={3} value={form.description} onChange={(e) => change("description", e.target.value)} />
-          <TextField label="Amount" type="number" value={form.amount} onChange={(e) => change("amount", e.target.value)} />
+          <TextField label="Notes (optional)" multiline minRows={2} value={form.description} onChange={(e) => change("description", e.target.value)} />
+          <Stack spacing={1}>
+            <Typography variant="subtitle2">Items</Typography>
+            {items.map((item, index) => (
+              <Stack key={`item-${index}`} spacing={1} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <TextField
+                    label="Item description"
+                    value={item.description}
+                    onChange={(e) => updateItem(index, { description: e.target.value })}
+                    fullWidth
+                  />
+                  <IconButton
+                    aria-label="remove item"
+                    onClick={() => removeItem(index)}
+                    disabled={items.length === 1}
+                    size="small"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <FormControl fullWidth>
+                    <InputLabel>Category</InputLabel>
+                    <Select
+                      label="Category"
+                      value={item.categoryId}
+                      onChange={(e) => updateItem(index, { categoryId: e.target.value })}
+                    >
+                  {selectableCategories.map((category) => (
+                        <MenuItem key={category.id} value={category.id}>
+                          {category.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <TextField
+                    label="Amount"
+                    type="number"
+                    value={item.amount}
+                    onChange={(e) => updateItem(index, { amount: e.target.value })}
+                    fullWidth
+                  />
+                </Stack>
+              </Stack>
+            ))}
+            <Button
+              variant="text"
+              onClick={addItem}
+              startIcon={<AddCircleOutlineIcon />}
+              sx={{ alignSelf: "flex-start" }}
+            >
+              Add Item
+            </Button>
+            <Typography variant="body1" sx={{ alignSelf: "flex-end", fontWeight: 700, color: "error.main" }}>
+              Total amount: {totalAmount.toFixed(2)}
+            </Typography>
+          </Stack>
           <TextField label="Date of Expense" type="date" InputLabelProps={{ shrink: true }} value={form.dateOfExpense} onChange={(e) => change("dateOfExpense", e.target.value)} />
           <Stack direction="row" spacing={2} alignItems="center">
             <Button component="label" variant="outlined">

@@ -21,8 +21,17 @@ public class CreateDraftValidator : AbstractValidator<CreateDraftDto>
     public CreateDraftValidator()
     {
         RuleFor(x => x.Subject).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.Description).NotEmpty().MaximumLength(2000);
-        RuleFor(x => x.Amount).GreaterThan(0).WithMessage("Amount must be greater than zero");
+        RuleFor(x => x.Description).MaximumLength(2000);
+        RuleFor(x => x.Items)
+            .NotNull()
+            .Must(items => items.Count > 0)
+            .WithMessage("At least one item is required");
+        RuleForEach(x => x.Items).ChildRules(item =>
+        {
+            item.RuleFor(i => i.Description).NotEmpty().MaximumLength(200);
+            item.RuleFor(i => i.Amount).GreaterThan(0).WithMessage("Item amount must be greater than zero");
+            item.RuleFor(i => i.CategoryId).GreaterThan(0);
+        });
         RuleFor(x => x.DateOfExpense)
             .LessThanOrEqualTo(DateTime.UtcNow.Date.AddDays(1))
             .WithMessage("Date of expense cannot be in the future");
@@ -34,8 +43,17 @@ public class UpdateDraftValidator : AbstractValidator<UpdateDraftDto>
     public UpdateDraftValidator()
     {
         RuleFor(x => x.Subject).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.Description).NotEmpty().MaximumLength(2000);
-        RuleFor(x => x.Amount).GreaterThan(0).WithMessage("Amount must be greater than zero");
+        RuleFor(x => x.Description).MaximumLength(2000);
+        RuleFor(x => x.Items)
+            .NotNull()
+            .Must(items => items.Count > 0)
+            .WithMessage("At least one item is required");
+        RuleForEach(x => x.Items).ChildRules(item =>
+        {
+            item.RuleFor(i => i.Description).NotEmpty().MaximumLength(200);
+            item.RuleFor(i => i.Amount).GreaterThan(0).WithMessage("Item amount must be greater than zero");
+            item.RuleFor(i => i.CategoryId).GreaterThan(0);
+        });
         RuleFor(x => x.DateOfExpense)
             .LessThanOrEqualTo(DateTime.UtcNow.Date.AddDays(1))
             .WithMessage("Date of expense cannot be in the future");

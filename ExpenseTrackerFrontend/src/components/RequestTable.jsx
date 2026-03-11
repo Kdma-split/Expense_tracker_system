@@ -53,12 +53,18 @@ const RequestTable = ({ rows, actions }) => (
     <TableBody>
       {rows.map((row) => {
         const documents = mapRequestDocuments(row);
+        const itemCategories = (row.items || []).map((item) => item.categoryName || "Uncategorized");
+        const distinctCategories = Array.from(new Set(itemCategories));
+        const categoryLabel =
+          distinctCategories.length > 1
+            ? "Multiple"
+            : distinctCategories[0] || row.categoryName || "Uncategorized";
         return (
           <TableRow key={row.id}>
             <TableCell>{row.id}</TableCell>
             <TableCell>{row.employeeId}</TableCell>
             <TableCell>{row.subject}</TableCell>
-            <TableCell>{row.categoryName || "Uncategorized"}</TableCell>
+            <TableCell>{categoryLabel}</TableCell>
             <TableCell>{row.amount}</TableCell>
             <TableCell>{new Date(row.createdAt || row.dateOfExpense).toLocaleDateString()}</TableCell>
             <TableCell>

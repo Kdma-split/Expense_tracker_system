@@ -35,6 +35,8 @@ public class Request : BaseEntity
     
     public FinanceStatus? FinanceStatus { get; set; }
 
+    public ICollection<RequestItem> Items { get; set; } = new List<RequestItem>();
+
     [Timestamp]
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 }

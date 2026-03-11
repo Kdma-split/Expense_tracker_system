@@ -10,8 +10,12 @@ public class ExpenseCategoryConfig : BaseEntity
     public bool IsActive { get; set; } = true;
     
     public ICollection<Draft> Drafts { get; set; } = new List<Draft>();
+
+    public ICollection<DraftItem> DraftItems { get; set; } = new List<DraftItem>();
     
     public ICollection<Request> Requests { get; set; } = new List<Request>();
+
+    public ICollection<RequestItem> RequestItems { get; set; } = new List<RequestItem>();
     
     public ICollection<Approved> ApprovedItems { get; set; } = new List<Approved>();
 }

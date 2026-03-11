@@ -22,4 +22,6 @@ public class Draft : BaseEntity
     public DateTime DateOfExpense { get; set; }
     
     public DateTime DraftDate { get; set; } = DateTime.UtcNow;
+
+    public ICollection<DraftItem> Items { get; set; } = new List<DraftItem>();
 }

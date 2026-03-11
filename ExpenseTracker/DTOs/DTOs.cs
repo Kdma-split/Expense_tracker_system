@@ -24,21 +24,22 @@ public record DraftDto(
     int? CategoryId,
     string? CategoryName,
     DateTime DateOfExpense,
-    DateTime DraftDate
+    DateTime DraftDate,
+    IReadOnlyCollection<DraftItemDto> Items
 );
 
 public record CreateDraftDto(
     string Subject,
-    string Description,
-    decimal Amount,
-    DateTime DateOfExpense
+    string? Description,
+    DateTime DateOfExpense,
+    IReadOnlyCollection<CreateDraftItemDto> Items
 );
 
 public record UpdateDraftDto(
     string Subject,
-    string Description,
-    decimal Amount,
-    DateTime DateOfExpense
+    string? Description,
+    DateTime DateOfExpense,
+    IReadOnlyCollection<CreateDraftItemDto> Items
 );
 
 public record RequestDto(
@@ -52,7 +53,30 @@ public record RequestDto(
     DateTime DateOfExpense,
     DateTime CreatedAt,
     RequestStatus Status,
-    string? Remarks = null
+    string? Remarks = null,
+    IReadOnlyCollection<RequestItemDto>? Items = null
+);
+
+public record DraftItemDto(
+    int Id,
+    string Description,
+    decimal Amount,
+    int CategoryId,
+    string? CategoryName
+);
+
+public record RequestItemDto(
+    int Id,
+    string Description,
+    decimal Amount,
+    int CategoryId,
+    string? CategoryName
+);
+
+public record CreateDraftItemDto(
+    string Description,
+    decimal Amount,
+    int CategoryId
 );
 
 public record RequestFilterDto(

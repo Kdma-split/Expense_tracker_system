@@ -26,6 +26,15 @@ export const buildRequestSignature = (requestLike) =>
     requestLike?.subject?.trim()?.toLowerCase() || "",
     requestLike?.description?.trim()?.toLowerCase() || "",
     safeNumber(requestLike?.amount),
+    Array.isArray(requestLike?.items)
+      ? requestLike.items
+          .map((item) => [
+            item?.description?.trim()?.toLowerCase() || "",
+            safeNumber(item?.amount),
+            String(item?.categoryId || "")
+          ].join(":"))
+          .join(",")
+      : "",
     normalizeDate(requestLike?.dateOfExpense)
   ].join("|");
 

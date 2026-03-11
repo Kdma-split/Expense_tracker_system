@@ -73,6 +73,7 @@ public class ExpenseService : IExpenseService
         return await _db.Drafts
             .AsNoTracking()
             .Include(d => d.Category)
+            .Include(d => d.Items).ThenInclude(i => i.Category)
             .Where(d => d.EmployeeId == employeeId)
             .OrderByDescending(d => d.DraftDate)
             .Select(ToDraftDto())
@@ -84,6 +85,7 @@ public class ExpenseService : IExpenseService
         return await _db.Drafts
             .AsNoTracking()
             .Include(d => d.Category)
+            .Include(d => d.Items).ThenInclude(i => i.Category)
             .Where(d => d.Id == id)
             .Select(ToDraftDto())
             .FirstOrDefaultAsync();
@@ -91,14 +93,16 @@ public class ExpenseService : IExpenseService
 
     public async Task<DraftDto> CreateDraftAsync(int employeeId, CreateDraftDto dto)
     {
-        var categoryId = await GetOrCreateUncategorizedCategoryIdAsync();
+        await ValidateCategoriesAsync(dto.Items.Select(i => i.CategoryId));
+        var totalAmount = dto.Items.Sum(i => i.Amount);
+        var categoryId = dto.Items.Count == 1 ? dto.Items.First().CategoryId : null;
 
         var draft = new Draft
         {
             EmployeeId = employeeId,
             Subject = dto.Subject.Trim(),
-            Description = dto.Description.Trim(),
-            Amount = dto.Amount,
+            Description = dto.Description?.Trim() ?? string.Empty,
+            Amount = totalAmount,
             CategoryId = categoryId,
             DateOfExpense = dto.DateOfExpense.Date,
             DraftDate = DateTime.UtcNow,
@@ -109,31 +113,67 @@ public class ExpenseService : IExpenseService
         _db.Drafts.Add(draft);
         await _db.SaveChangesAsync();
 
-        var categoryName = await _db.ExpenseCategories
-            .Where(c => c.Id == categoryId)
-            .Select(c => c.Name)
-            .FirstAsync();
+        if (dto.Items.Count > 0)
+        {
+            foreach (var item in dto.Items)
+            {
+                _db.DraftItems.Add(new DraftItem
+                {
+                    DraftId = draft.Id,
+                    Description = item.Description.Trim(),
+                    Amount = item.Amount,
+                    CategoryId = item.CategoryId,
+                    CreatedBy = employeeId.ToString(),
+                    CreatedDate = DateTime.UtcNow
+                });
+            }
+            await _db.SaveChangesAsync();
+        }
 
-        return new DraftDto(
-            draft.Id, draft.EmployeeId, draft.Subject, draft.Description, draft.Amount,
-            draft.CategoryId, categoryName, draft.DateOfExpense, draft.DraftDate
-        );
+        return await _db.Drafts
+            .AsNoTracking()
+            .Include(d => d.Category)
+            .Include(d => d.Items).ThenInclude(i => i.Category)
+            .Where(d => d.Id == draft.Id)
+            .Select(ToDraftDto())
+            .FirstAsync();
     }
 
     public async Task UpdateDraftAsync(int id, int employeeId, UpdateDraftDto dto)
     {
-        var categoryId = await GetOrCreateUncategorizedCategoryIdAsync();
+        await ValidateCategoriesAsync(dto.Items.Select(i => i.CategoryId));
+        var totalAmount = dto.Items.Sum(i => i.Amount);
+        var categoryId = dto.Items.Count == 1 ? dto.Items.First().CategoryId : null;
 
-        var draft = await _db.Drafts.FirstOrDefaultAsync(d => d.Id == id && d.EmployeeId == employeeId)
+        var draft = await _db.Drafts
+            .Include(d => d.Items)
+            .FirstOrDefaultAsync(d => d.Id == id && d.EmployeeId == employeeId)
             ?? throw new InvalidOperationException("Draft not found");
 
         draft.Subject = dto.Subject.Trim();
-        draft.Description = dto.Description.Trim();
-        draft.Amount = dto.Amount;
+        draft.Description = dto.Description?.Trim() ?? string.Empty;
+        draft.Amount = totalAmount;
         draft.CategoryId = categoryId;
         draft.DateOfExpense = dto.DateOfExpense.Date;
         draft.UpdatedDate = DateTime.UtcNow;
         draft.UpdatedBy = employeeId.ToString();
+
+        if (draft.Items.Count > 0)
+        {
+            _db.DraftItems.RemoveRange(draft.Items);
+        }
+        foreach (var item in dto.Items)
+        {
+            _db.DraftItems.Add(new DraftItem
+            {
+                DraftId = draft.Id,
+                Description = item.Description.Trim(),
+                Amount = item.Amount,
+                CategoryId = item.CategoryId,
+                CreatedBy = employeeId.ToString(),
+                CreatedDate = DateTime.UtcNow
+            });
+        }
 
         await _db.SaveChangesAsync();
     }
@@ -153,8 +193,15 @@ public class ExpenseService : IExpenseService
             ?? throw new InvalidOperationException("Employee not found");
         var autoApprove = employee.ManagerId == null;
 
-        var draft = await _db.Drafts.FirstOrDefaultAsync(d => d.Id == draftId && d.EmployeeId == employeeId)
+        var draft = await _db.Drafts
+            .Include(d => d.Items)
+            .FirstOrDefaultAsync(d => d.Id == draftId && d.EmployeeId == employeeId)
             ?? throw new InvalidOperationException("Draft not found");
+
+        if (draft.Items.Count == 0)
+        {
+            throw new InvalidOperationException("Draft has no items");
+        }
 
         var duplicateExists = await _db.Requests.AnyAsync(r =>
             r.EmployeeId == employeeId &&
@@ -171,13 +218,16 @@ public class ExpenseService : IExpenseService
 
         await using var tx = await _db.Database.BeginTransactionAsync();
 
+        var totalAmount = draft.Items.Sum(i => i.Amount);
+        var requestCategoryId = draft.Items.Count == 1 ? draft.Items.First().CategoryId : null;
+
         var request = new Request
         {
             EmployeeId = draft.EmployeeId,
             Subject = draft.Subject,
             Description = draft.Description,
-            Amount = draft.Amount,
-            CategoryId = draft.CategoryId,
+            Amount = totalAmount,
+            CategoryId = requestCategoryId,
             DateOfExpense = draft.DateOfExpense,
             CreatedAt = DateTime.UtcNow,
             Status = autoApprove ? RequestStatus.Approved : RequestStatus.Submitted,
@@ -186,6 +236,20 @@ public class ExpenseService : IExpenseService
         };
 
         _db.Requests.Add(request);
+        await _db.SaveChangesAsync();
+
+        foreach (var item in draft.Items)
+        {
+            _db.RequestItems.Add(new RequestItem
+            {
+                RequestId = request.Id,
+                Description = item.Description,
+                Amount = item.Amount,
+                CategoryId = item.CategoryId,
+                CreatedBy = employeeId.ToString(),
+                CreatedDate = DateTime.UtcNow
+            });
+        }
         await _db.SaveChangesAsync();
 
         _db.StatusHistory.Add(new StatusHistory
@@ -236,6 +300,7 @@ public class ExpenseService : IExpenseService
         return await _db.Requests
             .AsNoTracking()
             .Include(r => r.Category)
+            .Include(r => r.Items).ThenInclude(i => i.Category)
             .Where(r => r.Id == request.Id)
             .Select(ToRequestDto())
             .FirstAsync();
@@ -243,7 +308,11 @@ public class ExpenseService : IExpenseService
 
     public async Task<PagedResultDto<RequestDto>> GetRequestsAsync(int userId, string role, RequestFilterDto filter)
     {
-var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.StatusHistory).AsQueryable();
+        var query = _db.Requests.AsNoTracking()
+            .Include(r => r.Category)
+            .Include(r => r.StatusHistory)
+            .Include(r => r.Items).ThenInclude(i => i.Category)
+            .AsQueryable();
         if (role == "Employee")
         {
             query = query.Where(r => r.EmployeeId == userId);
@@ -265,7 +334,10 @@ var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.
     {
         var teamIds = await GetTeamMemberIdsAsync(managerId);
         var effectiveFilter = filter with { Status = RequestStatus.Submitted };
-var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.StatusHistory)
+        var query = _db.Requests.AsNoTracking()
+            .Include(r => r.Category)
+            .Include(r => r.StatusHistory)
+            .Include(r => r.Items).ThenInclude(i => i.Category)
             .Where(r => teamIds.Contains(r.EmployeeId));
 
         query = ApplyRequestFilter(query, effectiveFilter);
@@ -276,7 +348,11 @@ var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.
 
     public async Task<RequestDto?> GetRequestByIdAsync(int id, int userId, string role)
     {
-var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.StatusHistory).Where(r => r.Id == id);
+        var query = _db.Requests.AsNoTracking()
+            .Include(r => r.Category)
+            .Include(r => r.StatusHistory)
+            .Include(r => r.Items).ThenInclude(i => i.Category)
+            .Where(r => r.Id == id);
         if (role == "Employee")
         {
             query = query.Where(r => r.EmployeeId == userId);
@@ -338,10 +414,13 @@ var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.
         });
 
         await _db.SaveChangesAsync();
-        return new RequestDto(
-            request.Id, request.EmployeeId, request.Subject, request.Description, request.Amount,
-            request.CategoryId, request.Category?.Name, request.DateOfExpense, request.CreatedAt, request.Status
-        );
+        return await _db.Requests
+            .AsNoTracking()
+            .Include(r => r.Category)
+            .Include(r => r.Items).ThenInclude(i => i.Category)
+            .Where(r => r.Id == request.Id)
+            .Select(ToRequestDto())
+            .FirstAsync();
     }
 
     public async Task<ApprovedDto> ApproveRequestAsync(int requestId, int managerId, string managerName, ApproveRequestDto dto)
@@ -610,6 +689,25 @@ var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.
         }
     }
 
+    private async Task ValidateCategoriesAsync(IEnumerable<int> categoryIds)
+    {
+        var ids = categoryIds.Where(id => id > 0).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            throw new InvalidOperationException("Invalid or inactive category");
+        }
+
+        var activeIds = await _db.ExpenseCategories
+            .Where(c => ids.Contains(c.Id) && c.IsActive)
+            .Select(c => c.Id)
+            .ToListAsync();
+
+        if (activeIds.Count != ids.Count)
+        {
+            throw new InvalidOperationException("Invalid or inactive category");
+        }
+    }
+
     private async Task<int> GetOrCreateUncategorizedCategoryIdAsync()
     {
         const string uncategorized = "Uncategorized";
@@ -693,7 +791,19 @@ var query = _db.Requests.AsNoTracking().Include(r => r.Category).Include(r => r.
     {
         return d => new DraftDto(
             d.Id, d.EmployeeId, d.Subject, d.Description, d.Amount, d.CategoryId,
-            d.Category != null ? d.Category.Name : null, d.DateOfExpense, d.DraftDate
+            d.Items.Count == 1
+                ? d.Items.Select(i => i.Category.Name).FirstOrDefault()
+                : d.Items.Count > 1
+                    ? "Multiple"
+                    : d.Category != null ? d.Category.Name : null,
+            d.DateOfExpense, d.DraftDate,
+            d.Items.Select(i => new DraftItemDto(
+                i.Id,
+                i.Description,
+                i.Amount,
+                i.CategoryId,
+                i.Category != null ? i.Category.Name : null
+            )).ToList()
         );
     }
 
@@ -701,12 +811,24 @@ private static Expression<Func<Request, RequestDto>> ToRequestDto()
     {
         return r => new RequestDto(
             r.Id, r.EmployeeId, r.Subject, r.Description, r.Amount, r.CategoryId,
-            r.Category != null ? r.Category.Name : null, r.DateOfExpense, r.CreatedAt, r.Status,
+            r.Items.Count == 1
+                ? r.Items.Select(i => i.Category.Name).FirstOrDefault()
+                : r.Items.Count > 1
+                    ? "Multiple"
+                    : r.Category != null ? r.Category.Name : null,
+            r.DateOfExpense, r.CreatedAt, r.Status,
             r.StatusHistory
                 .Where(h => h.ToStatus == RequestStatus.Approved || h.ToStatus == RequestStatus.Rejected || h.ToStatus == RequestStatus.Paid)
                 .OrderByDescending(h => h.ChangedAt)
                 .Select(h => h.Remarks)
-                .FirstOrDefault()
+                .FirstOrDefault(),
+            r.Items.Select(i => new RequestItemDto(
+                i.Id,
+                i.Description,
+                i.Amount,
+                i.CategoryId,
+                i.Category != null ? i.Category.Name : null
+            )).ToList()
         );
     }
 }

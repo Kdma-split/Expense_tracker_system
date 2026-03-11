@@ -39,7 +39,7 @@ const EmployeeDraftsPage = () => {
                 <TableCell>ID</TableCell>
                 <TableCell>Subject</TableCell>
                 <TableCell>Amount</TableCell>
-                <TableCell>Category (Admin Set After Payment)</TableCell>
+                <TableCell>Category</TableCell>
                 <TableCell>Date</TableCell>
                 <TableCell>Documents</TableCell>
                 <TableCell>Actions</TableCell>
@@ -48,12 +48,18 @@ const EmployeeDraftsPage = () => {
             <TableBody>
               {drafts.map((d) => {
                 const documents = getDocumentsForDraft(d.id, d);
+                const itemCategories = (d.items || []).map((item) => item.categoryName || "Uncategorized");
+                const distinctCategories = Array.from(new Set(itemCategories));
+                const categoryLabel =
+                  distinctCategories.length > 1
+                    ? "Multiple"
+                    : distinctCategories[0] || d.categoryName || "Uncategorized";
                 return (
                   <TableRow key={d.id}>
                     <TableCell>{d.id}</TableCell>
                     <TableCell>{d.subject}</TableCell>
                     <TableCell>{d.amount}</TableCell>
-                    <TableCell>{d.categoryName || "Uncategorized"}</TableCell>
+                    <TableCell>{categoryLabel}</TableCell>
                     <TableCell>{new Date(d.dateOfExpense).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Stack spacing={0.5}>

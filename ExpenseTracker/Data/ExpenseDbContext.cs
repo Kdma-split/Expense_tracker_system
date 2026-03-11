@@ -10,7 +10,9 @@ public class ExpenseDbContext : DbContext
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<EmployeeProfile> EmployeeProfiles => Set<EmployeeProfile>();
     public DbSet<Draft> Drafts => Set<Draft>();
+    public DbSet<DraftItem> DraftItems => Set<DraftItem>();
     public DbSet<Request> Requests => Set<Request>();
+    public DbSet<RequestItem> RequestItems => Set<RequestItem>();
     public DbSet<ExpenseCategoryConfig> ExpenseCategories => Set<ExpenseCategoryConfig>();
     public DbSet<StatusHistory> StatusHistory => Set<StatusHistory>();
     public DbSet<Approved> ApprovedItems => Set<Approved>();
@@ -63,6 +65,18 @@ public class ExpenseDbContext : DbContext
             .WithMany(c => c.Drafts)
             .HasForeignKey(d => d.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<DraftItem>()
+            .HasOne(di => di.Draft)
+            .WithMany(d => d.Items)
+            .HasForeignKey(di => di.DraftId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DraftItem>()
+            .HasOne(di => di.Category)
+            .WithMany(c => c.DraftItems)
+            .HasForeignKey(di => di.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
         
         // Request -> Employee
         modelBuilder.Entity<Request>()
@@ -75,6 +89,18 @@ public class ExpenseDbContext : DbContext
             .HasOne(r => r.Category)
             .WithMany(c => c.Requests)
             .HasForeignKey(r => r.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RequestItem>()
+            .HasOne(ri => ri.Request)
+            .WithMany(r => r.Items)
+            .HasForeignKey(ri => ri.RequestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RequestItem>()
+            .HasOne(ri => ri.Category)
+            .WithMany(c => c.RequestItems)
+            .HasForeignKey(ri => ri.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<StatusHistory>()
@@ -121,6 +147,10 @@ public class ExpenseDbContext : DbContext
         modelBuilder.Entity<Draft>()
             .Property(d => d.Amount)
             .HasPrecision(18, 2);
+
+        modelBuilder.Entity<DraftItem>()
+            .Property(di => di.Amount)
+            .HasPrecision(18, 2);
         
         modelBuilder.Entity<Request>()
             .Property(r => r.Status)
@@ -128,6 +158,10 @@ public class ExpenseDbContext : DbContext
         
         modelBuilder.Entity<Request>()
             .Property(r => r.Amount)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<RequestItem>()
+            .Property(ri => ri.Amount)
             .HasPrecision(18, 2);
         
         modelBuilder.Entity<Approved>()
@@ -168,5 +202,11 @@ public class ExpenseDbContext : DbContext
 
         modelBuilder.Entity<Draft>()
             .HasIndex(d => new { d.EmployeeId, d.DraftDate });
+
+        modelBuilder.Entity<DraftItem>()
+            .HasIndex(di => di.DraftId);
+
+        modelBuilder.Entity<RequestItem>()
+            .HasIndex(ri => ri.RequestId);
     }
 }

@@ -82,8 +82,8 @@ public static class DbInitializer
 
         SeedProfiles(context, admin, finance, managers, employees, now);
         var requesters = employees.Concat(managers).ToList();
-        SeedDrafts(context, requesters, uncategorizedId, now);
-        SeedRequestsAndWorkflowData(context, requesters, managers, finance, categoryPool, now);
+        SeedDrafts(context, requesters, categoryPool, uncategorizedId, now);
+        SeedRequestsAndWorkflowData(context, requesters, managers, finance, categoryPool, uncategorizedId, now);
 
         context.SaveChanges();
     }
@@ -201,6 +201,7 @@ public static class DbInitializer
     private static void SeedDrafts(
         ExpenseDbContext context,
         IReadOnlyList<Employee> employees,
+        IReadOnlyList<int> categoryPool,
         int uncategorizedId,
         DateTime now)
     {
@@ -208,17 +209,32 @@ public static class DbInitializer
         for (var i = 0; i < count; i++)
         {
             var employee = employees[i];
-            context.Drafts.Add(new Draft
+            var itemCategoryId = categoryPool.Count > 0
+                ? categoryPool[i % categoryPool.Count]
+                : uncategorizedId;
+            var draft = new Draft
             {
                 EmployeeId = employee.Id,
                 Subject = $"Draft Expense {i + 1}",
                 Description = $"Draft claim description {i + 1}",
                 Amount = 100 + (i * 37),
-                CategoryId = uncategorizedId,
+                CategoryId = itemCategoryId,
                 DateOfExpense = now.AddDays(-(i + 1)).Date,
                 DraftDate = now.AddDays(-i),
                 CreatedBy = employee.Id.ToString(),
                 CreatedDate = now.AddDays(-i)
+            };
+            context.Drafts.Add(draft);
+            context.SaveChanges();
+
+            context.DraftItems.Add(new DraftItem
+            {
+                DraftId = draft.Id,
+                Description = draft.Description,
+                Amount = draft.Amount,
+                CategoryId = itemCategoryId,
+                CreatedBy = employee.Id.ToString(),
+                CreatedDate = draft.CreatedDate
             });
         }
 
@@ -231,6 +247,7 @@ public static class DbInitializer
         IReadOnlyList<Employee> managers,
         Employee finance,
         IReadOnlyList<int> categoryPool,
+        int uncategorizedId,
         DateTime now)
     {
         var requestTemplates = new (string Subject, string Description)[]
@@ -295,6 +312,19 @@ public static class DbInitializer
             };
 
             context.Requests.Add(request);
+            context.SaveChanges();
+
+            var itemCategoryId = request.CategoryId
+                ?? (categoryPool.Count > 0 ? categoryPool[requestIndex % categoryPool.Count] : uncategorizedId);
+            context.RequestItems.Add(new RequestItem
+            {
+                RequestId = request.Id,
+                Description = request.Description,
+                Amount = request.Amount,
+                CategoryId = itemCategoryId,
+                CreatedBy = "System",
+                CreatedDate = request.CreatedDate
+            });
             context.SaveChanges();
 
             context.StatusHistory.Add(new StatusHistory
