@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Stack, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { useEmployeesQuery } from "../../api/hooks/employees";
 import EmployeeCreateDialog from "./components/EmployeeCreateDialog";
 import EmployeeUpdateDialog from "./components/EmployeeUpdateDialog";
@@ -33,7 +33,7 @@ const AdminEmployeesPage = () => {
   }, [manageableEmployees, employeeIdFilter, dateFilter]);
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} sx={{ height: "calc(100vh - 112px)", minHeight: 0 }}>
       <Typography variant="h5">Employee Management</Typography>
       <Stack direction="row" spacing={2}>
         <Button variant="contained" onClick={() => setCreateOpen(true)}>Create Employee</Button>
@@ -48,7 +48,9 @@ const AdminEmployeesPage = () => {
         setDateFilter={setDateFilter}
       />
 
-      <EmployeesTable employees={filtered} />
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        <EmployeesTable employees={filtered} />
+      </Box>
 
       <EmployeeCreateDialog open={createOpen} onClose={() => setCreateOpen(false)} />
       <EmployeeUpdateDialog open={updateOpen} onClose={() => setUpdateOpen(false)} />
